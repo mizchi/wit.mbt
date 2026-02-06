@@ -1,0 +1,382 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "mizchi/wit"
+
+// Values
+pub fn parse(String) -> Result[WitFile, ParseError]
+
+pub fn parse_path(String) -> Result[WitFile, ParseError]
+
+pub fn resolve(String) -> Result[Resolve, ParseError]
+
+pub fn resolve_path(String, world? : String) -> Result[ResolveInput, ParseError]
+
+pub fn tokenize(String) -> Result[Array[Token], ParseError]
+
+// Errors
+pub suberror ParseError {
+  Message(String, Int)
+}
+pub impl Eq for ParseError
+pub impl Show for ParseError
+
+// Types and methods
+pub struct Field {
+  name : String
+  ty : TypeExpr
+}
+pub impl Eq for Field
+pub impl Show for Field
+
+pub struct Function {
+  name : String
+  kind : FunctionKind
+  params : Array[Param]
+  result : TypeExpr?
+  docs : String?
+}
+pub impl Eq for Function
+pub impl Show for Function
+
+pub enum FunctionKind {
+  Freestanding
+  Constructor(String)
+  Method(String)
+  Static(String)
+}
+pub impl Eq for FunctionKind
+pub impl Show for FunctionKind
+
+pub struct InlineInterface {
+  name : String
+  docs : String?
+  items : Array[InterfaceItem]
+}
+pub impl Eq for InlineInterface
+pub impl Show for InlineInterface
+
+pub struct Interface {
+  name : String
+  docs : String?
+  items : Array[InterfaceItem]
+}
+pub impl Eq for Interface
+pub impl Show for Interface
+
+pub enum InterfaceItem {
+  Use(UseDecl)
+  TypeDef(TypeDef)
+  Function(Function)
+}
+pub impl Eq for InterfaceItem
+pub impl Show for InterfaceItem
+
+pub struct PackageName {
+  ns : String
+  name : String
+  version : String?
+}
+pub impl Eq for PackageName
+pub impl Show for PackageName
+
+pub struct Param {
+  name : String
+  ty : TypeExpr
+}
+pub impl Eq for Param
+pub impl Show for Param
+
+pub struct RFunction {
+  name : String
+  kind : RFunctionKind
+  params : Array[(String, RType)]
+  result : RType?
+  docs : String?
+}
+pub impl Eq for RFunction
+pub impl Show for RFunction
+pub impl ToJson for RFunction
+
+pub enum RFunctionKind {
+  Freestanding
+  Constructor(Int)
+  Method(Int)
+  Static(Int)
+}
+pub impl Eq for RFunctionKind
+pub impl Show for RFunctionKind
+pub impl ToJson for RFunctionKind
+
+pub enum RHandleKind {
+  Own(Int)
+  Borrow(Int)
+}
+pub impl Eq for RHandleKind
+pub impl Show for RHandleKind
+pub impl ToJson for RHandleKind
+
+pub struct RInterface {
+  name : String?
+  docs : String?
+  functions : Map[String, RFunction]
+  types : Map[String, Int]
+  pkg : Int?
+}
+pub impl Eq for RInterface
+pub impl Show for RInterface
+pub impl ToJson for RInterface
+
+pub struct RInterfaceRef {
+  id : Int
+}
+pub impl Eq for RInterfaceRef
+pub impl Show for RInterfaceRef
+pub impl ToJson for RInterfaceRef
+
+pub struct RPackage {
+  name : RPackageName
+  interfaces : Map[String, Int]
+  worlds : Map[String, Int]
+}
+pub impl Eq for RPackage
+pub impl Show for RPackage
+pub impl ToJson for RPackage
+
+pub struct RPackageName {
+  ns : String
+  name : String
+  version : String?
+}
+pub impl Eq for RPackageName
+pub impl Show for RPackageName
+pub impl ToJson for RPackageName
+
+pub struct RRecordField {
+  name : String
+  field_type : RType
+}
+pub impl Eq for RRecordField
+pub impl Show for RRecordField
+pub impl ToJson for RRecordField
+
+pub enum RType {
+  Bool
+  U8
+  U16
+  U32
+  U64
+  S8
+  S16
+  S32
+  S64
+  F32
+  F64
+  Char
+  String_
+  Id(Int)
+}
+pub impl Eq for RType
+pub impl Show for RType
+pub impl ToJson for RType
+
+pub struct RTypeDef {
+  name : String?
+  kind : RTypeKind
+  owner : RTypeOwner
+  docs : String?
+}
+pub impl Eq for RTypeDef
+pub impl Show for RTypeDef
+pub impl ToJson for RTypeDef
+
+pub enum RTypeKind {
+  Record(Array[RRecordField])
+  Variant(Array[RVariantCase])
+  List(RType)
+  Option(RType)
+  Result(ok~ : RType?, err~ : RType?)
+  Tuple(Array[RType])
+  Flags(Array[String])
+  Enum(Array[String])
+  Alias(RType)
+  Resource
+  Handle(RHandleKind)
+}
+pub impl Eq for RTypeKind
+pub impl Show for RTypeKind
+pub impl ToJson for RTypeKind
+
+pub enum RTypeOwner {
+  Interface(Int)
+  World(Int)
+  None
+}
+pub impl Eq for RTypeOwner
+pub impl Show for RTypeOwner
+pub impl ToJson for RTypeOwner
+
+pub struct RVariantCase {
+  name : String
+  case_type : RType?
+}
+pub impl Eq for RVariantCase
+pub impl Show for RVariantCase
+pub impl ToJson for RVariantCase
+
+pub struct RWorld {
+  name : String
+  docs : String?
+  imports : Map[String, RWorldItem]
+  exports : Map[String, RWorldItem]
+  pkg : Int?
+}
+pub impl Eq for RWorld
+pub impl Show for RWorld
+pub impl ToJson for RWorld
+
+pub enum RWorldItem {
+  Interface(RInterfaceRef)
+  Function(RFunction)
+  Type(Int)
+}
+pub impl Eq for RWorldItem
+pub impl Show for RWorldItem
+pub impl ToJson for RWorldItem
+
+pub struct Resolve {
+  worlds : Array[RWorld]
+  interfaces : Array[RInterface]
+  types : Array[RTypeDef]
+  packages : Array[RPackage]
+}
+pub impl Eq for Resolve
+pub impl Show for Resolve
+pub impl ToJson for Resolve
+
+pub struct ResolveInput {
+  resolve : Resolve
+  world_id : Int
+}
+pub impl Eq for ResolveInput
+pub impl Show for ResolveInput
+pub impl ToJson for ResolveInput
+
+pub struct Resource {
+  funcs : Array[Function]
+}
+pub impl Eq for Resource
+pub impl Show for Resource
+
+pub struct Token {
+  token_type : TokenType
+  offset : Int
+}
+pub impl Eq for Token
+pub impl Show for Token
+
+pub enum TokenType {
+  Ident(String)
+  Keyword(String)
+  Symbol(String)
+  StringLit(String)
+  Number(String)
+  Doc(String)
+  Eof
+}
+pub impl Eq for TokenType
+pub impl Show for TokenType
+
+pub struct TypeDef {
+  name : String
+  kind : TypeDefKind
+  docs : String?
+}
+pub impl Eq for TypeDef
+pub impl Show for TypeDef
+
+pub enum TypeDefKind {
+  Record(Array[Field])
+  Enum(Array[String])
+  Flags(Array[String])
+  Variant(Array[VariantCase])
+  Alias(TypeExpr)
+  Resource(Resource)
+}
+pub impl Eq for TypeDefKind
+pub impl Show for TypeDefKind
+
+pub enum TypeExpr {
+  Bool
+  U8
+  U16
+  U32
+  U64
+  S8
+  S16
+  S32
+  S64
+  F32
+  F64
+  Char
+  String_
+  Id(String)
+  List(TypeExpr)
+  Option(TypeExpr)
+  Result(TypeExpr, TypeExpr?)
+  Tuple(Array[TypeExpr])
+  Own(String)
+  Borrow(String)
+}
+pub impl Eq for TypeExpr
+pub impl Show for TypeExpr
+
+pub struct UseDecl {
+  from : String
+  names : Array[String]
+}
+pub impl Eq for UseDecl
+pub impl Show for UseDecl
+
+pub struct UsePath {
+  pkg : PackageName?
+  interface : String
+}
+pub impl Eq for UsePath
+pub impl Show for UsePath
+
+pub struct VariantCase {
+  name : String
+  ty : TypeExpr?
+}
+pub impl Eq for VariantCase
+pub impl Show for VariantCase
+
+pub struct WitFile {
+  pkg : PackageName?
+  interfaces : Array[Interface]
+  worlds : Array[World]
+}
+pub impl Eq for WitFile
+pub impl Show for WitFile
+
+pub struct World {
+  name : String
+  docs : String?
+  types : Array[TypeDef]
+  imports : Array[WorldItem]
+  exports : Array[WorldItem]
+}
+pub impl Eq for World
+pub impl Show for World
+
+pub enum WorldItem {
+  Interface(UsePath)
+  Function(Function)
+  InlineInterface(InlineInterface)
+}
+pub impl Eq for WorldItem
+pub impl Show for WorldItem
+
+// Type aliases
+
+// Traits
+

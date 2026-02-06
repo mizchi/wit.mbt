@@ -1,0 +1,8 @@
+import {
+  "mizchi/wit" as @wit,
+  "moonbitlang/x/sys" as @sys,
+}
+
+options(
+  "is-main": true,
+)

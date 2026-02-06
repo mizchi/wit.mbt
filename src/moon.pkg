@@ -1,0 +1,5 @@
+import {
+  "moonbitlang/core/bench",
+  "moonbitlang/core/json",
+  "moonbitlang/x/fs" as @fs,
+}
