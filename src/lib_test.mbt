@@ -47,6 +47,126 @@ test "parse world imports" {
 }
 
 ///|
+test "parse async function in interface" {
+  let source = "package wasi:http;\n\ninterface client {\n  send: async func(request: string) -> result<string, string>;\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) => {
+      assert_eq(wit_file.interfaces.length(), 1)
+      let iface = wit_file.interfaces[0]
+      assert_eq(iface.name, "client")
+      let mut found_send = false
+      for item in iface.items {
+        match item {
+          InterfaceItem::Function(func) =>
+            if func.name == "send" {
+              found_send = true
+              assert_eq(func.params.length(), 1)
+              assert_eq(func.params[0].name, "request")
+            }
+          _ => ()
+        }
+      }
+      assert_true(found_send)
+    }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
+
+///|
+test "resolve async function in world export" {
+  let source = "package wasi:http;\n\nworld service {\n  export handle: async func() -> result<string, string>;\n}\n"
+  let result = resolve(source)
+  match result {
+    Ok(resolved) => {
+      assert_eq(resolved.worlds.length(), 1)
+      let world = resolved.worlds[0]
+      assert_true(world.exports.contains("handle"))
+    }
+    Err(err) => abort("expected resolve success, got: " + err.to_string())
+  }
+}
+
+///|
+test "parse prerelease package version" {
+  let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\ninterface ping {\n  ping: func();\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) =>
+      match wit_file.pkg {
+        Some(pkg) => {
+          assert_eq(pkg.ns, "wasi")
+          assert_eq(pkg.name, "http")
+          assert_eq(pkg.version, Some("0.3.0-rc-2026-02-05"))
+        }
+        None => abort("expected package declaration")
+      }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
+
+///|
+test "parse gates and includes in world" {
+  let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\n@since(version = 0.3.0-rc-2026-02-05)\nworld service {\n  @since(version = 0.3.0-rc-2026-02-05)\n  include wasi:clocks/imports@0.3.0-rc-2026-02-05;\n  include wasi:clocks/imports@0.3.0-rc-2026-02-05 with { monotonic-clock as clocks-monotonic-clock };\n  @since(version = 0.3.0-rc-2026-02-05)\n  import wasi:cli/stdout@0.3.0-rc-2026-02-05;\n  export handler: interface {\n    handle: async func();\n  }\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) => {
+      assert_eq(wit_file.worlds.length(), 1)
+      let world = wit_file.worlds[0]
+      assert_eq(world.name, "service")
+      assert_eq(world.imports.length(), 1)
+      match world.imports[0] {
+        WorldItem::Interface(path) => {
+          assert_eq(path.interface, "stdout")
+          match path.pkg {
+            Some(pkg) => {
+              assert_eq(pkg.ns, "wasi")
+              assert_eq(pkg.name, "cli")
+              assert_eq(pkg.version, Some("0.3.0-rc-2026-02-05"))
+            }
+            None => abort("expected package-qualified use path")
+          }
+        }
+        _ => abort("expected interface import")
+      }
+      assert_eq(world.exports.length(), 1)
+      match world.exports[0] {
+        WorldItem::InlineInterface(inline) => {
+          assert_eq(inline.name, "handler")
+          let mut has_handle = false
+          for item in inline.items {
+            match item {
+              InterfaceItem::Function(func) =>
+                if func.name == "handle" {
+                  has_handle = true
+                }
+              _ => ()
+            }
+          }
+          assert_true(has_handle)
+        }
+        _ => abort("expected inline handler export")
+      }
+    }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
+
+///|
+test "resolve world with gate/include syntax" {
+  let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\n@since(version = 0.3.0-rc-2026-02-05)\nworld service {\n  include wasi:clocks/imports@0.3.0-rc-2026-02-05;\n  import wasi:cli/stdout@0.3.0-rc-2026-02-05;\n}\n"
+  let result = resolve(source)
+  match result {
+    Ok(resolved) => {
+      assert_eq(resolved.worlds.length(), 1)
+      let world = resolved.worlds[0]
+      assert_true(world.imports.length() > 0)
+    }
+    Err(err) => abort("expected resolve success, got: " + err.to_string())
+  }
+}
+
+///|
 test "resolve hello" {
   let source = "package local:hello;\n\ninterface greet {\n  greet: func(name: string) -> string;\n}\n\nworld hello {\n  export greet;\n}\n"
   let result = resolve(source)

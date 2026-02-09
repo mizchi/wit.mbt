@@ -36,6 +36,18 @@ fn join_docs(lines : Array[String]) -> String {
 }
 
 ///|
+fn merge_docs(before : String?, after : String?) -> String? {
+  match before {
+    Some(first) =>
+      match after {
+        Some(second) => Some(first + "\n" + second)
+        None => Some(first)
+      }
+    None => after
+  }
+}
+
+///|
 fn Parser::take_docs(self : Parser) -> String? {
   self.consume_docs()
   if self.pending_docs.length() == 0 {
@@ -102,6 +114,11 @@ fn Parser::is_world_func_decl(self : Parser) -> Bool {
       self.peek_n(2).token_type,
     ) {
     (Ident(_), Symbol(sym), Keyword(kw)) if sym == ":" && kw == "func" => true
+    (Ident(_), Symbol(sym), Keyword(kw)) if sym == ":" && kw == "async" =>
+      match self.peek_n(3).token_type {
+        Keyword(next_kw) if next_kw == "func" => true
+        _ => false
+      }
     _ => false
   }
 }
@@ -174,22 +191,57 @@ fn Parser::expect_ident(self : Parser) -> String raise ParseError {
 }
 
 ///|
-fn Parser::parse_version(self : Parser) -> String raise ParseError {
-  match self.peek().token_type {
-    Number(s) => {
-      ignore(self.advance())
-      s
+fn Parser::skip_gate_args(self : Parser) -> Unit raise ParseError {
+  self.expect_symbol("(")
+  let mut depth = 1
+  while depth > 0 {
+    let tok = self.advance()
+    match tok.token_type {
+      Eof => raise self.error("unterminated gate annotation")
+      Symbol(sym) if sym == "(" => depth += 1
+      Symbol(sym) if sym == ")" => depth -= 1
+      _ => ()
     }
-    Ident(s) => {
-      ignore(self.advance())
-      s
-    }
-    Keyword(s) => {
-      ignore(self.advance())
-      s
-    }
-    _ => raise self.error("expected version")
   }
+}
+
+///|
+fn Parser::skip_gate_annotations(self : Parser) -> Unit raise ParseError {
+  while self.match_symbol("@") {
+    match self.peek().token_type {
+      Ident(_) | Keyword(_) => ignore(self.advance())
+      _ => raise self.error("expected gate name")
+    }
+    self.skip_gate_args()
+  }
+}
+
+///|
+fn is_version_part(token : TokenType) -> Bool {
+  match token {
+    Number(_) | Ident(_) => true
+    Symbol(sym) if sym == "." || sym == "-" || sym == "+" => true
+    _ => false
+  }
+}
+
+///|
+fn Parser::parse_version(self : Parser) -> String raise ParseError {
+  let buf = StringBuilder::new()
+  let mut consumed = false
+  while is_version_part(self.peek().token_type) {
+    consumed = true
+    let tok = self.advance()
+    match tok.token_type {
+      Number(text) | Ident(text) => buf.write_string(text)
+      Symbol(sym) => buf.write_string(sym)
+      _ => ()
+    }
+  }
+  if !consumed {
+    raise self.error("expected version")
+  }
+  buf.to_string()
 }
 
 ///|
@@ -216,11 +268,18 @@ fn Parser::parse_use_path(self : Parser) -> UsePath raise ParseError {
       let v = self.parse_version()
       version = Some(v)
     }
-    let pkg : PackageName = { ns: first, name, version }
     if !self.match_symbol("/") {
       raise self.error("expected '/' after package name")
     }
     let iface = self.expect_ident()
+    if self.match_symbol("@") {
+      if version is Some(_) {
+        raise self.error("duplicate version in use path")
+      }
+      let v = self.parse_version()
+      version = Some(v)
+    }
+    let pkg : PackageName = { ns: first, name, version }
     { pkg: Some(pkg), interface: iface }
   } else {
     { pkg: None, interface: first }
@@ -378,6 +437,7 @@ fn Parser::parse_function(
 ) -> Function raise ParseError {
   let name = self.expect_ident()
   self.expect_symbol(":")
+  let _ = self.match_keyword("async")
   self.expect_keyword("func")
   let params = self.parse_params()
   let mut result : TypeExpr? = None
@@ -575,6 +635,25 @@ fn Parser::parse_use_decl(self : Parser) -> UseDecl raise ParseError {
 }
 
 ///|
+fn Parser::parse_include_item(self : Parser) -> Unit raise ParseError {
+  let _ = self.parse_use_path()
+  if self.match_keyword("with") {
+    self.expect_symbol("{")
+    while true {
+      let _ = self.expect_ident()
+      self.expect_keyword("as")
+      let _ = self.expect_ident()
+      if self.match_symbol(",") {
+        continue
+      }
+      self.expect_symbol("}")
+      break
+    }
+  }
+  self.expect_symbol(";")
+}
+
+///|
 fn Parser::parse_interface(
   self : Parser,
   docs : String?,
@@ -591,7 +670,10 @@ fn Parser::parse_interface_items(
   self.expect_symbol("{")
   let items : Array[InterfaceItem] = []
   while true {
-    let item_docs = self.take_docs()
+    let docs_before = self.take_docs()
+    self.skip_gate_annotations()
+    let docs_after = self.take_docs()
+    let item_docs = merge_docs(docs_before, docs_after)
     if self.match_symbol("}") {
       break
     }
@@ -650,7 +732,10 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
   let imports : Array[WorldItem] = []
   let exports : Array[WorldItem] = []
   while true {
-    let item_docs = self.take_docs()
+    let docs_before = self.take_docs()
+    self.skip_gate_annotations()
+    let docs_after = self.take_docs()
+    let item_docs = merge_docs(docs_before, docs_after)
     if self.match_symbol("}") {
       break
     }
@@ -688,6 +773,10 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
       let type_name = self.expect_ident()
       let def = self.parse_type_alias(type_name, item_docs)
       types.push(def)
+      continue
+    }
+    if self.match_keyword("include") {
+      self.parse_include_item()
       continue
     }
     if self.match_keyword("import") {
@@ -740,7 +829,10 @@ fn parse_wit(source : String) -> WitFile raise ParseError {
     if parser.is_eof() {
       break
     }
-    let item_docs = parser.take_docs()
+    let docs_before = parser.take_docs()
+    parser.skip_gate_annotations()
+    let docs_after = parser.take_docs()
+    let item_docs = merge_docs(docs_before, docs_after)
     if parser.match_keyword("package") {
       let pkg_name = parser.parse_package()
       pkg = Some(pkg_name)
