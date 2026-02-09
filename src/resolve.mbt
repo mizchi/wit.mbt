@@ -112,6 +112,8 @@ pub enum RTypeKind {
   Variant(Array[RVariantCase])
   List(RType)
   Option(RType)
+  Future(RType)
+  Stream(RType)
   Result(ok~ : RType?, err~ : RType?)
   Tuple(Array[RType])
   Flags(Array[String])
@@ -269,6 +271,16 @@ fn type_kind_key(kind : RTypeKind) -> String {
     }
     RTypeKind::Option(inner) => {
       buf.write_string("option(")
+      buf.write_string(type_key(inner))
+      buf.write_char(')')
+    }
+    RTypeKind::Future(inner) => {
+      buf.write_string("future(")
+      buf.write_string(type_key(inner))
+      buf.write_char(')')
+    }
+    RTypeKind::Stream(inner) => {
+      buf.write_string("stream(")
       buf.write_string(type_key(inner))
       buf.write_char(')')
     }
@@ -477,6 +489,8 @@ pub impl ToJson for RTypeKind with to_json(self) {
       Json::object({ "variant": Json::object({ "cases": cases.to_json() }) })
     RTypeKind::List(inner) => Json::object({ "list": inner.to_json() })
     RTypeKind::Option(inner) => Json::object({ "option": inner.to_json() })
+    RTypeKind::Future(inner) => Json::object({ "future": inner.to_json() })
+    RTypeKind::Stream(inner) => Json::object({ "stream": inner.to_json() })
     RTypeKind::Result(ok~, err~) =>
       Json::object({
         "result": Json::object({
@@ -755,6 +769,16 @@ fn Resolver::resolve_type_expr(
       let id = self.intern_type(Option(inner_ty))
       RType::Id(id)
     }
+    Future(inner) => {
+      let inner_ty = self.resolve_type_expr(iface_id, inner)
+      let id = self.intern_type(Future(inner_ty))
+      RType::Id(id)
+    }
+    Stream(inner) => {
+      let inner_ty = self.resolve_type_expr(iface_id, inner)
+      let id = self.intern_type(Stream(inner_ty))
+      RType::Id(id)
+    }
     Result(ok_ty, err_ty) => {
       let ok_value = self.resolve_type_expr(iface_id, ok_ty)
       let ok : RType? = Some(ok_value)
@@ -956,6 +980,16 @@ fn Resolver::resolve_type_expr_world(
       let id = self.intern_type(Option(inner_ty))
       RType::Id(id)
     }
+    Future(inner) => {
+      let inner_ty = self.resolve_type_expr_world(scope, inner)
+      let id = self.intern_type(Future(inner_ty))
+      RType::Id(id)
+    }
+    Stream(inner) => {
+      let inner_ty = self.resolve_type_expr_world(scope, inner)
+      let id = self.intern_type(Stream(inner_ty))
+      RType::Id(id)
+    }
     Result(ok_ty, err_ty) => {
       let ok_value = self.resolve_type_expr_world(scope, ok_ty)
       let ok : RType? = Some(ok_value)
@@ -1063,6 +1097,42 @@ fn Resolver::register_interface_items(
 }
 
 ///|
+fn use_path_string(path : UsePath) -> String {
+  match path.pkg {
+    Some(pkg) => pkg_key(to_rpkg(pkg)) + "/" + path.interface
+    None => path.interface
+  }
+}
+
+///|
+fn Resolver::resolve_use_decl_target_iface_id(
+  self : Resolver,
+  current_pkg : Int?,
+  from : UsePath,
+) -> Int raise ParseError {
+  let target_pkg = match from.pkg {
+    Some(pkg) =>
+      match self.package_ids.get(pkg_key(to_rpkg(pkg))) {
+        Some(pkg_id) => Some(pkg_id)
+        None =>
+          raise ParseError::Message(
+            "unknown interface: " + use_path_string(from),
+            0,
+          )
+      }
+    None => current_pkg
+  }
+  match self.iface_ids.get(iface_key(target_pkg, from.interface)) {
+    Some(id) => id
+    None =>
+      raise ParseError::Message(
+        "unknown interface: " + use_path_string(from),
+        0,
+      )
+  }
+}
+
+///|
 fn Resolver::apply_use_decls_items(
   self : Resolver,
   iface_id : Int,
@@ -1072,12 +1142,10 @@ fn Resolver::apply_use_decls_items(
   for item in items {
     match item {
       Use(decl) => {
-        let target_id = match
-          self.iface_ids.get(iface_key(builder.pkg, decl.from)) {
-          Some(id) => id
-          None =>
-            raise ParseError::Message("unknown interface: " + decl.from, 0)
-        }
+        let target_id = self.resolve_use_decl_target_iface_id(
+          builder.pkg,
+          decl.from,
+        )
         let target = self.iface_builders[target_id]
         for name in decl.names {
           match target.types.get(name) {
@@ -1106,12 +1174,10 @@ fn Resolver::apply_use_decls(
     for item in iface.items {
       match item {
         Use(decl) => {
-          let target_id = match
-            self.iface_ids.get(iface_key(builder.pkg, decl.from)) {
-            Some(id) => id
-            None =>
-              raise ParseError::Message("unknown interface: " + decl.from, 0)
-          }
+          let target_id = self.resolve_use_decl_target_iface_id(
+            builder.pkg,
+            decl.from,
+          )
           let target = self.iface_builders[target_id]
           for name in decl.names {
             match target.types.get(name) {

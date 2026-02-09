@@ -9,6 +9,20 @@ fn find_world_by_name(worlds : Array[RWorld], name : String) -> RWorld? {
 }
 
 ///|
+fn find_interface_by_name(
+  interfaces : Array[RInterface],
+  name : String,
+) -> RInterface? {
+  for iface in interfaces {
+    match iface.name {
+      Some(iface_name) => if iface_name == name { return Some(iface) }
+      None => ()
+    }
+  }
+  None
+}
+
+///|
 test "parse hello" {
   let source = "package local:hello;\n\ninterface greet {\n  greet: func(name: string) -> string;\n}\n\nworld hello {\n  export greet;\n}\n"
   let result = parse(source)
@@ -42,6 +56,42 @@ test "parse resource" {
       #|Ok({pkg: Some({ns: "local", name: "resource-test", version: None}), interfaces: [{name: "blob-store", docs: None, items: [TypeDef({name: "blob", kind: Resource({funcs: [{name: "constructor", kind: Constructor("blob"), params: [{name: "data", ty: List(U8)}], result: None, docs: None}, {name: "size", kind: Method("blob"), params: [], result: Some(U32), docs: None}, {name: "read", kind: Method("blob"), params: [{name: "offset", ty: U32}, {name: "len", ty: U32}], result: Some(List(U8)), docs: None}, {name: "write", kind: Method("blob"), params: [{name: "offset", ty: U32}, {name: "data", ty: List(U8)}], result: None, docs: None}]}), docs: None}), Function({name: "create-blob", kind: Freestanding, params: [{name: "data", ty: List(U8)}], result: Some(Own("blob")), docs: None}), Function({name: "get-blob-size", kind: Freestanding, params: [{name: "b", ty: Borrow("blob")}], result: Some(U32), docs: None}), Function({name: "consume-blob", kind: Freestanding, params: [{name: "b", ty: Own("blob")}], result: Some(List(U8)), docs: None})]}], worlds: [{name: "resource-world", docs: None, types: [], imports: [], exports: [Interface({pkg: None, interface: "blob-store"})]}]})
     ),
   )
+}
+
+///|
+test "parse resource function with name: static func syntax" {
+  let source = "package local:resource-static;\n\ninterface blob-store {\n  resource fields {\n    from-list: static func(entries: list<string>) -> fields;\n    clone: func() -> fields;\n  }\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) => {
+      assert_eq(wit_file.interfaces.length(), 1)
+      let iface = wit_file.interfaces[0]
+      assert_eq(iface.items.length(), 1)
+      match iface.items[0] {
+        InterfaceItem::TypeDef(type_def) =>
+          match type_def.kind {
+            TypeDefKind::Resource(resource) => {
+              assert_eq(resource.funcs.length(), 2)
+              assert_eq(resource.funcs[0].name, "from-list")
+              match resource.funcs[0].kind {
+                FunctionKind::Static(resource_name) =>
+                  assert_eq(resource_name, "fields")
+                _ => abort("expected static function kind")
+              }
+              assert_eq(resource.funcs[1].name, "clone")
+              match resource.funcs[1].kind {
+                FunctionKind::Method(resource_name) =>
+                  assert_eq(resource_name, "fields")
+                _ => abort("expected method function kind")
+              }
+            }
+            _ => abort("expected resource type")
+          }
+        _ => abort("expected typedef item")
+      }
+    }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
 }
 
 ///|
@@ -107,6 +157,48 @@ test "parse async function with trailing comma params" {
           assert_eq(func.params[0].name, "how-long")
         }
         _ => abort("expected function item")
+      }
+    }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
+
+///|
+test "parse stream/future and bare result types" {
+  let source = "package wasi:http;\n\ninterface io {\n  reset: func() -> result;\n  send: async func(body: option<stream<u8>>) -> future<result<_, string>>;\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) => {
+      assert_eq(wit_file.interfaces.length(), 1)
+      let iface = wit_file.interfaces[0]
+      assert_eq(iface.items.length(), 2)
+      match iface.items[0] {
+        InterfaceItem::Function(func) =>
+          match func.result {
+            Some(TypeExpr::Result(TypeExpr::Tuple(_), Some(TypeExpr::Tuple(_)))) =>
+              ()
+            _ =>
+              abort("expected bare result to parse as result<tuple<>, tuple<>>")
+          }
+        _ => abort("expected reset function")
+      }
+      match iface.items[1] {
+        InterfaceItem::Function(func) => {
+          assert_eq(func.params.length(), 1)
+          match func.params[0].ty {
+            TypeExpr::Option(TypeExpr::Stream(TypeExpr::U8)) => ()
+            _ => abort("expected option<stream<u8>> parameter")
+          }
+          match func.result {
+            Some(
+              TypeExpr::Future(
+                TypeExpr::Result(TypeExpr::Tuple(_), Some(TypeExpr::String_))
+              )
+            ) => ()
+            _ => abort("expected future<result<_, string>> result")
+          }
+        }
+        _ => abort("expected send function")
       }
     }
     Err(err) => abort("expected parse success, got: " + err.to_string())
@@ -194,6 +286,69 @@ test "parse gates and includes in world" {
       }
     }
     Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
+
+///|
+test "parse package-qualified use declaration in interface" {
+  let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\ninterface client {\n  use wasi:clocks/types@0.3.0-rc-2026-02-05.{duration};\n  ping: func(timeout: duration);\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) => {
+      assert_eq(wit_file.interfaces.length(), 1)
+      let iface = wit_file.interfaces[0]
+      assert_eq(iface.name, "client")
+      assert_eq(iface.items.length(), 2)
+      match iface.items[0] {
+        InterfaceItem::Use(decl) => {
+          assert_eq(decl.names.length(), 1)
+          assert_eq(decl.names[0], "duration")
+          assert_eq(decl.from.interface, "types")
+          match decl.from.pkg {
+            Some(pkg) => {
+              assert_eq(pkg.ns, "wasi")
+              assert_eq(pkg.name, "clocks")
+              assert_eq(pkg.version, Some("0.3.0-rc-2026-02-05"))
+            }
+            None => abort("expected package-qualified use path")
+          }
+        }
+        _ => abort("expected use declaration")
+      }
+    }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
+
+///|
+test "resolve package-qualified use declaration" {
+  let source = "package local:sample;\n\ninterface types {\n  type duration = u64;\n}\n\ninterface client {\n  use local:sample/types.{duration};\n  ping: func(timeout: duration) -> duration;\n}\n\nworld sample {\n  export client;\n}\n"
+  let result = resolve(source)
+  match result {
+    Ok(resolved) => {
+      let client = match find_interface_by_name(resolved.interfaces, "client") {
+        Some(iface) => iface
+        None => abort("missing interface: client")
+      }
+      let duration_id = match client.types.get("duration") {
+        Some(id) => id
+        None => abort("missing imported type: duration")
+      }
+      let ping = match client.functions.get("ping") {
+        Some(fn_) => fn_
+        None => abort("missing function: ping")
+      }
+      assert_eq(ping.params.length(), 1)
+      match ping.params[0].1 {
+        RType::Id(id) => assert_eq(id, duration_id)
+        _ => abort("expected ping param to resolve imported duration")
+      }
+      match ping.result {
+        Some(RType::Id(id)) => assert_eq(id, duration_id)
+        _ => abort("expected ping result to resolve imported duration")
+      }
+    }
+    Err(err) => abort("expected resolve success, got: " + err.to_string())
   }
 }
 

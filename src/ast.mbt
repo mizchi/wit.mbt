@@ -28,7 +28,7 @@ pub enum InterfaceItem {
 
 ///|
 pub struct UseDecl {
-  from : String
+  from : UsePath
   names : Array[String]
 } derive(Show, Eq)
 
@@ -107,6 +107,8 @@ pub enum TypeExpr {
   Id(String)
   List(TypeExpr)
   Option(TypeExpr)
+  Future(TypeExpr)
+  Stream(TypeExpr)
   Result(TypeExpr, TypeExpr?)
   Tuple(Array[TypeExpr])
   Own(String)

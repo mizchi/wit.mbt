@@ -217,9 +217,16 @@ fn Parser::skip_gate_annotations(self : Parser) -> Unit raise ParseError {
 }
 
 ///|
-fn is_version_part(token : TokenType) -> Bool {
+fn is_version_atom(token : TokenType) -> Bool {
   match token {
     Number(_) | Ident(_) => true
+    _ => false
+  }
+}
+
+///|
+fn is_version_separator(token : TokenType) -> Bool {
+  match token {
     Symbol(sym) if sym == "." || sym == "-" || sym == "+" => true
     _ => false
   }
@@ -228,18 +235,26 @@ fn is_version_part(token : TokenType) -> Bool {
 ///|
 fn Parser::parse_version(self : Parser) -> String raise ParseError {
   let buf = StringBuilder::new()
-  let mut consumed = false
-  while is_version_part(self.peek().token_type) {
-    consumed = true
-    let tok = self.advance()
-    match tok.token_type {
-      Number(text) | Ident(text) => buf.write_string(text)
+  if !is_version_atom(self.peek().token_type) {
+    raise self.error("expected version")
+  }
+  let first = self.advance()
+  match first.token_type {
+    Number(text) | Ident(text) => buf.write_string(text)
+    _ => ()
+  }
+  while is_version_separator(self.peek().token_type) &&
+        is_version_atom(self.peek_n(1).token_type) {
+    let sep = self.advance()
+    let part = self.advance()
+    match sep.token_type {
       Symbol(sym) => buf.write_string(sym)
       _ => ()
     }
-  }
-  if !consumed {
-    raise self.error("expected version")
+    match part.token_type {
+      Number(text) | Ident(text) => buf.write_string(text)
+      _ => ()
+    }
   }
   buf.to_string()
 }
@@ -355,17 +370,34 @@ fn Parser::parse_type_expr(self : Parser) -> TypeExpr raise ParseError {
       self.expect_symbol(">")
       Option(inner)
     }
-    Keyword("result") => {
+    Keyword("future") => {
       ignore(self.advance())
       self.expect_symbol("<")
-      let ok_ty = self.parse_type_expr()
-      let mut err_ty : TypeExpr? = None
-      if self.match_symbol(",") {
-        let e = self.parse_type_expr()
-        err_ty = Some(e)
-      }
+      let inner = self.parse_type_expr()
       self.expect_symbol(">")
-      Result(ok_ty, err_ty)
+      Future(inner)
+    }
+    Keyword("stream") => {
+      ignore(self.advance())
+      self.expect_symbol("<")
+      let inner = self.parse_type_expr()
+      self.expect_symbol(">")
+      Stream(inner)
+    }
+    Keyword("result") => {
+      ignore(self.advance())
+      if self.match_symbol("<") {
+        let ok_ty = self.parse_type_expr()
+        let mut err_ty : TypeExpr? = None
+        if self.match_symbol(",") {
+          let e = self.parse_type_expr()
+          err_ty = Some(e)
+        }
+        self.expect_symbol(">")
+        Result(ok_ty, err_ty)
+      } else {
+        Result(Tuple([]), Some(Tuple([])))
+      }
     }
     Keyword("tuple") => {
       ignore(self.advance())
@@ -402,7 +434,11 @@ fn Parser::parse_type_expr(self : Parser) -> TypeExpr raise ParseError {
     }
     Ident(name) => {
       ignore(self.advance())
-      Id(name)
+      if name == "_" {
+        Tuple([])
+      } else {
+        Id(name)
+      }
     }
     _ => raise self.error("expected type")
   }
@@ -475,6 +511,46 @@ fn Parser::parse_constructor(
 }
 
 ///|
+fn Parser::parse_resource_function(
+  self : Parser,
+  resource_name : String,
+  docs : String?,
+) -> Function raise ParseError {
+  let name = self.expect_ident()
+  self.expect_symbol(":")
+  let mut is_static = false
+  while true {
+    if self.match_keyword("async") {
+      continue
+    }
+    if self.match_keyword("static") {
+      is_static = true
+      continue
+    }
+    break
+  }
+  self.expect_keyword("func")
+  let params = self.parse_params()
+  let mut result : TypeExpr? = None
+  if self.match_symbol("->") {
+    let ty = self.parse_type_expr()
+    result = Some(ty)
+  }
+  self.expect_symbol(";")
+  {
+    name,
+    kind: if is_static {
+      Static(resource_name)
+    } else {
+      Method(resource_name)
+    },
+    params,
+    result,
+    docs,
+  }
+}
+
+///|
 fn Parser::parse_resource(
   self : Parser,
   name : String,
@@ -497,7 +573,7 @@ fn Parser::parse_resource(
       funcs.push(func)
       continue
     }
-    let func = self.parse_function(Method(name), func_docs)
+    let func = self.parse_resource_function(name, func_docs)
     funcs.push(func)
   }
   { name, kind: Resource({ funcs, }), docs }
@@ -617,7 +693,7 @@ fn Parser::parse_type_alias(
 
 ///|
 fn Parser::parse_use_decl(self : Parser) -> UseDecl raise ParseError {
-  let from = self.expect_ident()
+  let from = self.parse_use_path()
   self.expect_symbol(".")
   self.expect_symbol("{")
   let names : Array[String] = []
