@@ -127,6 +127,7 @@ pub enum WorldItem {
   Interface(UsePath)
   Function(Function)
   InlineInterface(InlineInterface)
+  Include(IncludeDecl)
 } derive(Show, Eq)
 
 ///|
@@ -140,6 +141,18 @@ pub struct InlineInterface {
 pub struct UsePath {
   pkg : PackageName?
   interface : String
+} derive(Show, Eq)
+
+///|
+pub struct IncludeDecl {
+  path : UsePath
+  renames : Array[IncludeRename]
+} derive(Show, Eq)
+
+///|
+pub struct IncludeRename {
+  from : String
+  to : String
 } derive(Show, Eq)
 
 ///|

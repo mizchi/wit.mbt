@@ -46,6 +46,20 @@ pub enum FunctionKind {
 pub impl Eq for FunctionKind
 pub impl Show for FunctionKind
 
+pub struct IncludeDecl {
+  path : UsePath
+  renames : Array[IncludeRename]
+}
+pub impl Eq for IncludeDecl
+pub impl Show for IncludeDecl
+
+pub struct IncludeRename {
+  from : String
+  to : String
+}
+pub impl Eq for IncludeRename
+pub impl Show for IncludeRename
+
 pub struct InlineInterface {
   name : String
   docs : String?
@@ -372,6 +386,7 @@ pub enum WorldItem {
   Interface(UsePath)
   Function(Function)
   InlineInterface(InlineInterface)
+  Include(IncludeDecl)
 }
 pub impl Eq for WorldItem
 pub impl Show for WorldItem
