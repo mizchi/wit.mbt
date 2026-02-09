@@ -23,6 +23,20 @@ fn find_interface_by_name(
 }
 
 ///|
+fn find_resolved_interface_info_by_name(
+  infos : Array[ResolvedInterfaceInfo],
+  name : String,
+) -> ResolvedInterfaceInfo? {
+  for info in infos {
+    match info.name {
+      Some(interface_name) => if interface_name == name { return Some(info) }
+      None => ()
+    }
+  }
+  None
+}
+
+///|
 test "parse hello" {
   let source = "package local:hello;\n\ninterface greet {\n  greet: func(name: string) -> string;\n}\n\nworld hello {\n  export greet;\n}\n"
   let result = parse(source)
@@ -349,6 +363,46 @@ test "resolve package-qualified use declaration" {
       }
     }
     Err(err) => abort("expected resolve success, got: " + err.to_string())
+  }
+}
+
+///|
+test "resolve_interface_infos returns imported type owner metadata" {
+  let source = "package local:sample;\n\ninterface types {\n  type duration = u64;\n}\n\ninterface client {\n  use local:sample/types.{duration};\n  ping: func(timeout: duration) -> duration;\n}\n\nworld sample {\n  export client;\n}\n"
+  let result = resolve_interface_infos(source)
+  match result {
+    Ok(infos) => {
+      let client = match find_resolved_interface_info_by_name(infos, "client") {
+        Some(info) => info
+        None => abort("missing resolved interface info: client")
+      }
+      let duration = match client.types.get("duration") {
+        Some(info) => info
+        None => abort("missing resolved type info: duration")
+      }
+      assert_eq(duration.local_name, "duration")
+      assert_eq(duration.type_name, Some("duration"))
+      assert_eq(duration.owner_interface, Some("types"))
+      assert_eq(duration.owner_world, None)
+      match duration.owner_package {
+        Some(pkg) => {
+          assert_eq(pkg.ns, "local")
+          assert_eq(pkg.name, "sample")
+          assert_eq(pkg.version, None)
+        }
+        None => abort("expected owner_package")
+      }
+      match client.package_name {
+        Some(pkg) => {
+          assert_eq(pkg.ns, "local")
+          assert_eq(pkg.name, "sample")
+          assert_eq(pkg.version, None)
+        }
+        None => abort("expected package_name")
+      }
+    }
+    Err(err) =>
+      abort("expected resolve_interface_infos success, got: " + err.to_string())
   }
 }
 

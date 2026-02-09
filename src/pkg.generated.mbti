@@ -2,13 +2,19 @@
 package "mizchi/wit"
 
 // Values
+pub fn interface_infos(Resolve) -> Array[ResolvedInterfaceInfo]
+
 pub fn parse(String) -> Result[WitFile, ParseError]
 
 pub fn parse_path(String) -> Result[WitFile, ParseError]
 
 pub fn resolve(String) -> Result[Resolve, ParseError]
 
+pub fn resolve_interface_infos(String) -> Result[Array[ResolvedInterfaceInfo], ParseError]
+
 pub fn resolve_path(String, world? : String) -> Result[ResolveInput, ParseError]
+
+pub fn resolve_path_interface_infos(String, world? : String) -> Result[Array[ResolvedInterfaceInfo], ParseError]
 
 pub fn tokenize(String) -> Result[Array[Token], ParseError]
 
@@ -275,6 +281,30 @@ pub struct ResolveInput {
 pub impl Eq for ResolveInput
 pub impl Show for ResolveInput
 pub impl ToJson for ResolveInput
+
+pub struct ResolvedInterfaceInfo {
+  interface_id : Int
+  name : String?
+  docs : String?
+  package_name : RPackageName?
+  functions : Map[String, RFunction]
+  types : Map[String, ResolvedTypeInfo]
+}
+pub impl Eq for ResolvedInterfaceInfo
+pub impl Show for ResolvedInterfaceInfo
+
+pub struct ResolvedTypeInfo {
+  local_name : String
+  type_id : Int
+  type_name : String?
+  type_kind : RTypeKind
+  owner : RTypeOwner
+  owner_package : RPackageName?
+  owner_interface : String?
+  owner_world : String?
+}
+pub impl Eq for ResolvedTypeInfo
+pub impl Show for ResolvedTypeInfo
 
 pub struct Resource {
   funcs : Array[Function]
