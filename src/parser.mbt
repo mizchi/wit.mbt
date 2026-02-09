@@ -421,6 +421,9 @@ fn Parser::parse_params(self : Parser) -> Array[Param] raise ParseError {
     let ty = self.parse_type_expr()
     params.push({ name, ty })
     if self.match_symbol(",") {
+      if self.match_symbol(")") {
+        break
+      }
       continue
     }
     self.expect_symbol(")")

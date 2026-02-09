@@ -84,6 +84,36 @@ test "parse async function in interface" {
 }
 
 ///|
+test "parse async function with trailing comma params" {
+  let source = "package wasi:clocks;\n\ninterface monotonic-clock {\n  wait-until: async func(\n    when: u64,\n  );\n  wait-for: async func(\n    how-long: u64,\n  );\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) => {
+      assert_eq(wit_file.interfaces.length(), 1)
+      let iface = wit_file.interfaces[0]
+      assert_eq(iface.items.length(), 2)
+      match iface.items[0] {
+        InterfaceItem::Function(func) => {
+          assert_eq(func.name, "wait-until")
+          assert_eq(func.params.length(), 1)
+          assert_eq(func.params[0].name, "when")
+        }
+        _ => abort("expected function item")
+      }
+      match iface.items[1] {
+        InterfaceItem::Function(func) => {
+          assert_eq(func.name, "wait-for")
+          assert_eq(func.params.length(), 1)
+          assert_eq(func.params[0].name, "how-long")
+        }
+        _ => abort("expected function item")
+      }
+    }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
+
+///|
 test "resolve async function in world export" {
   let source = "package wasi:http;\n\nworld service {\n  export handle: async func() -> result<string, string>;\n}\n"
   let result = resolve(source)
