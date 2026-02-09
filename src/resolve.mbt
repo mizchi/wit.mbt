@@ -835,6 +835,84 @@ fn resolve_world_type(
 }
 
 ///|
+fn renamed_world_item_name(
+  name : String,
+  renames : Array[IncludeRename],
+) -> String {
+  for rename in renames {
+    if rename.from == name {
+      return rename.to
+    }
+  }
+  name
+}
+
+///|
+fn merge_included_world_items(
+  target : Map[String, RWorldItem],
+  source : Map[String, RWorldItem],
+  renames : Array[IncludeRename],
+) -> Unit raise ParseError {
+  for name, item in source {
+    let merged_name = renamed_world_item_name(name, renames)
+    if target.contains(merged_name) {
+      raise ParseError::Message("duplicate world item: " + merged_name, 0)
+    }
+    target.set(merged_name, item)
+  }
+}
+
+///|
+fn Resolver::find_world_id_in_scope(
+  self : Resolver,
+  pkg_id : Int?,
+  name : String,
+) -> Int? {
+  match pkg_id {
+    Some(pid) => self.packages[pid].worlds.get(name)
+    None => {
+      for world_id, world in self.worlds {
+        if world.pkg is None && world.name == name {
+          return Some(world_id)
+        }
+      }
+      None
+    }
+  }
+}
+
+///|
+fn Resolver::resolve_include_world_id(
+  self : Resolver,
+  current_pkg_id : Int?,
+  include_decl : IncludeDecl,
+) -> Int raise ParseError {
+  match include_decl.path.pkg {
+    Some(pkg) => {
+      let pid = self.ensure_package(to_rpkg(pkg))
+      match self.packages[pid].worlds.get(include_decl.path.interface) {
+        Some(world_id) => world_id
+        None =>
+          raise ParseError::Message(
+            "unknown world: " + include_decl.path.interface,
+            0,
+          )
+      }
+    }
+    None =>
+      match
+        self.find_world_id_in_scope(current_pkg_id, include_decl.path.interface) {
+        Some(world_id) => world_id
+        None =>
+          raise ParseError::Message(
+            "unknown world: " + include_decl.path.interface,
+            0,
+          )
+      }
+  }
+}
+
+///|
 fn Resolver::resolve_world_resource(
   self : Resolver,
   scope : WorldTypeScope,
@@ -1351,6 +1429,22 @@ fn Resolver::fill_worlds(
     }
     for item in world.imports {
       match item {
+        WorldItem::Include(include_decl) => {
+          let include_world_id = self.resolve_include_world_id(
+            pkg_id, include_decl,
+          )
+          let include_world = self.worlds[include_world_id]
+          merge_included_world_items(
+            imports,
+            include_world.imports,
+            include_decl.renames,
+          )
+          merge_included_world_items(
+            exports,
+            include_world.exports,
+            include_decl.renames,
+          )
+        }
         WorldItem::Interface(path) => {
           let iface_id = match path.pkg {
             Some(p) => {
@@ -1429,6 +1523,8 @@ fn Resolver::fill_worlds(
           let resolved = self.resolve_world_function(func, world_scope)
           exports.set(resolved.name, Function(resolved))
         }
+        WorldItem::Include(_) =>
+          raise ParseError::Message("include is not allowed in exports list", 0)
       }
     }
     let world_def : RWorld = {

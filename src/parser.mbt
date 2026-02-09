@@ -635,14 +635,16 @@ fn Parser::parse_use_decl(self : Parser) -> UseDecl raise ParseError {
 }
 
 ///|
-fn Parser::parse_include_item(self : Parser) -> Unit raise ParseError {
-  let _ = self.parse_use_path()
+fn Parser::parse_include_item(self : Parser) -> IncludeDecl raise ParseError {
+  let path = self.parse_use_path()
+  let renames : Array[IncludeRename] = []
   if self.match_keyword("with") {
     self.expect_symbol("{")
     while true {
-      let _ = self.expect_ident()
+      let from = self.expect_ident()
       self.expect_keyword("as")
-      let _ = self.expect_ident()
+      let to = self.expect_ident()
+      renames.push({ from, to })
       if self.match_symbol(",") {
         continue
       }
@@ -651,6 +653,7 @@ fn Parser::parse_include_item(self : Parser) -> Unit raise ParseError {
     }
   }
   self.expect_symbol(";")
+  { path, renames }
 }
 
 ///|
@@ -776,7 +779,8 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
       continue
     }
     if self.match_keyword("include") {
-      self.parse_include_item()
+      let include_decl = self.parse_include_item()
+      imports.push(Include(include_decl))
       continue
     }
     if self.match_keyword("import") {

@@ -1,4 +1,14 @@
 ///|
+fn find_world_by_name(worlds : Array[RWorld], name : String) -> RWorld? {
+  for world in worlds {
+    if world.name == name {
+      return Some(world)
+    }
+  }
+  None
+}
+
+///|
 test "parse hello" {
   let source = "package local:hello;\n\ninterface greet {\n  greet: func(name: string) -> string;\n}\n\nworld hello {\n  export greet;\n}\n"
   let result = parse(source)
@@ -114,21 +124,26 @@ test "parse gates and includes in world" {
       assert_eq(wit_file.worlds.length(), 1)
       let world = wit_file.worlds[0]
       assert_eq(world.name, "service")
-      assert_eq(world.imports.length(), 1)
-      match world.imports[0] {
-        WorldItem::Interface(path) => {
-          assert_eq(path.interface, "stdout")
-          match path.pkg {
-            Some(pkg) => {
-              assert_eq(pkg.ns, "wasi")
-              assert_eq(pkg.name, "cli")
-              assert_eq(pkg.version, Some("0.3.0-rc-2026-02-05"))
+      assert_eq(world.imports.length(), 3)
+      let mut has_stdout_import = false
+      for item in world.imports {
+        match item {
+          WorldItem::Interface(path) =>
+            if path.interface == "stdout" {
+              has_stdout_import = true
+              match path.pkg {
+                Some(pkg) => {
+                  assert_eq(pkg.ns, "wasi")
+                  assert_eq(pkg.name, "cli")
+                  assert_eq(pkg.version, Some("0.3.0-rc-2026-02-05"))
+                }
+                None => abort("expected package-qualified use path")
+              }
             }
-            None => abort("expected package-qualified use path")
-          }
+          _ => ()
         }
-        _ => abort("expected interface import")
       }
+      assert_true(has_stdout_import)
       assert_eq(world.exports.length(), 1)
       match world.exports[0] {
         WorldItem::InlineInterface(inline) => {
@@ -154,13 +169,52 @@ test "parse gates and includes in world" {
 
 ///|
 test "resolve world with gate/include syntax" {
-  let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\n@since(version = 0.3.0-rc-2026-02-05)\nworld service {\n  include wasi:clocks/imports@0.3.0-rc-2026-02-05;\n  import wasi:cli/stdout@0.3.0-rc-2026-02-05;\n}\n"
+  let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\n@since(version = 0.3.0-rc-2026-02-05)\nworld base {\n  import ping: func() -> u32;\n}\n\n@since(version = 0.3.0-rc-2026-02-05)\nworld service {\n  include base;\n  import pong: func() -> u32;\n}\n"
   let result = resolve(source)
   match result {
     Ok(resolved) => {
-      assert_eq(resolved.worlds.length(), 1)
-      let world = resolved.worlds[0]
-      assert_true(world.imports.length() > 0)
+      let world = match find_world_by_name(resolved.worlds, "service") {
+        Some(found) => found
+        None => abort("missing world: service")
+      }
+      assert_true(world.imports.contains("ping"))
+      assert_true(world.imports.contains("pong"))
+    }
+    Err(err) => abort("expected resolve success, got: " + err.to_string())
+  }
+}
+
+///|
+test "resolve include merges imports and exports" {
+  let source = "package local:inc;\n\nworld base {\n  import ping: func() -> u32;\n  export pong: func() -> u32;\n}\n\nworld derived {\n  include base;\n}\n"
+  let result = resolve(source)
+  match result {
+    Ok(resolved) => {
+      let derived = match find_world_by_name(resolved.worlds, "derived") {
+        Some(world) => world
+        None => abort("missing world: derived")
+      }
+      assert_true(derived.imports.contains("ping"))
+      assert_true(derived.exports.contains("pong"))
+    }
+    Err(err) => abort("expected resolve success, got: " + err.to_string())
+  }
+}
+
+///|
+test "resolve include with rename remaps names" {
+  let source = "package local:inc;\n\nworld base {\n  import ping: func() -> u32;\n  export pong: func() -> u32;\n}\n\nworld renamed {\n  include base with { ping as ping-renamed, pong as pong-renamed };\n}\n"
+  let result = resolve(source)
+  match result {
+    Ok(resolved) => {
+      let renamed = match find_world_by_name(resolved.worlds, "renamed") {
+        Some(world) => world
+        None => abort("missing world: renamed")
+      }
+      assert_true(renamed.imports.contains("ping-renamed"))
+      assert_true(renamed.exports.contains("pong-renamed"))
+      assert_true(not(renamed.imports.contains("ping")))
+      assert_true(not(renamed.exports.contains("pong")))
     }
     Err(err) => abort("expected resolve success, got: " + err.to_string())
   }
