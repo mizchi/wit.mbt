@@ -120,7 +120,6 @@ fn Lexer::skip_whitespace(self : Lexer) -> Unit {
     match self.peek_char() {
       Some(c) if c.is_ascii_whitespace() => {
         let _ = self.advance()
-
       }
       _ => break
     }
@@ -135,7 +134,6 @@ fn Lexer::read_ident(self : Lexer) -> String {
       Some(c) if is_ident_continue(c) => {
         buf.write_char(c)
         let _ = self.advance()
-
       }
       _ => break
     }
@@ -151,7 +149,6 @@ fn Lexer::read_number(self : Lexer) -> String {
       Some(c) if c.is_ascii_digit() || c == '.' => {
         buf.write_char(c)
         let _ = self.advance()
-
       }
       _ => break
     }
@@ -168,7 +165,6 @@ fn Lexer::read_line_comment(self : Lexer) -> String {
       Some(c) => {
         buf.write_char(c)
         let _ = self.advance()
-
       }
     }
   }
@@ -243,7 +239,6 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
         let _ = lexer.advance()
         if lexer.peek_char() == Some('/') {
           let _ = lexer.advance()
-
         }
         let text = lexer.read_line_comment().trim().to_string()
         tokens.push({ token_type: Doc(text), offset })

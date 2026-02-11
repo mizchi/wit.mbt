@@ -1,6 +1,6 @@
 import {
-  "mizchi/wit" as @wit,
-  "moonbitlang/x/sys" as @sys,
+  "mizchi/wit" @wit,
+  "moonbitlang/x/sys" @sys,
 }
 
 options(
