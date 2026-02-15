@@ -148,11 +148,20 @@ fn Lexer::read_number(self : Lexer) -> String {
   let buf = StringBuilder::new()
   while true {
     match self.peek_char() {
-      Some(c) if c.is_ascii_digit() || c == '.' => {
+      Some(c) if c.is_ascii_digit() => {
         buf.write_char(c)
         let _ = self.advance()
-
       }
+      Some('.') =>
+        // Only consume '.' if followed by a digit (e.g., 0.2.9)
+        // Don't consume trailing '.' (e.g., in 0.2.9.{...})
+        match self.peek_next() {
+          Some(next) if next.is_ascii_digit() => {
+            buf.write_char('.')
+            let _ = self.advance()
+          }
+          _ => break
+        }
       _ => break
     }
   }
