@@ -556,6 +556,10 @@ fn Parser::parse_resource(
   name : String,
   docs : String?,
 ) -> TypeDef raise ParseError {
+  // Bare resource declaration: `resource foo;`
+  if self.match_symbol(";") {
+    return { name, kind: Resource({ funcs: [] }), docs }
+  }
   self.expect_symbol("{")
   let funcs : Array[Function] = []
   while true {

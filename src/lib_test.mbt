@@ -508,6 +508,31 @@ test "resolve world inline interface" {
 }
 
 ///|
+test "parse bare resource declaration" {
+  let source = "package wasi:cli;\n\ninterface terminal-input {\n  resource terminal-input;\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) => {
+      assert_eq(wit_file.interfaces.length(), 1)
+      let iface = wit_file.interfaces[0]
+      assert_eq(iface.items.length(), 1)
+      match iface.items[0] {
+        InterfaceItem::TypeDef(type_def) => {
+          assert_eq(type_def.name, "terminal-input")
+          match type_def.kind {
+            TypeDefKind::Resource(resource) =>
+              assert_eq(resource.funcs.length(), 0)
+            _ => abort("expected resource type")
+          }
+        }
+        _ => abort("expected typedef item")
+      }
+    }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
+
+///|
 test "tokenize basic" {
   let result = tokenize("package local:hello;")
   inspect(
