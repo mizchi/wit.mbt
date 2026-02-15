@@ -248,6 +248,16 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
         let text = lexer.read_line_comment().trim().to_string()
         tokens.push({ token_type: Doc(text), offset })
       }
+      Some('%') => {
+        let _ = lexer.advance()
+        match lexer.peek_char() {
+          Some(c) if is_ident_start(c) => {
+            let ident = lexer.read_ident()
+            tokens.push({ token_type: Ident(ident), offset })
+          }
+          _ => raise ParseError::Message("expected identifier after %", offset)
+        }
+      }
       Some(c) if is_ident_start(c) => {
         let ident = lexer.read_ident()
         let token_type = if is_keyword(ident) {

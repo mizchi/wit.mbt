@@ -517,3 +517,62 @@ test "tokenize basic" {
     ),
   )
 }
+
+///|
+test "tokenize percent-escaped keyword" {
+  let result = tokenize("%type: descriptor-type,")
+  inspect(
+    result,
+    content=(
+      #|Ok([{token_type: Ident("type"), offset: 0}, {token_type: Symbol(":"), offset: 5}, {token_type: Ident("descriptor-type"), offset: 7}, {token_type: Symbol(","), offset: 22}, {token_type: Eof, offset: 23}])
+    ),
+  )
+}
+
+///|
+test "parse record with percent-escaped field name" {
+  let source = "package wasi:fs;\n\ninterface types {\n  record descriptor-stat {\n    %type: string,\n    name: string,\n  }\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) => {
+      assert_eq(wit_file.interfaces.length(), 1)
+      let iface = wit_file.interfaces[0]
+      assert_eq(iface.items.length(), 1)
+      match iface.items[0] {
+        InterfaceItem::TypeDef(type_def) =>
+          match type_def.kind {
+            TypeDefKind::Record(fields) => {
+              assert_eq(fields.length(), 2)
+              assert_eq(fields[0].name, "type")
+              assert_eq(fields[1].name, "name")
+            }
+            _ => abort("expected record type")
+          }
+        _ => abort("expected typedef item")
+      }
+    }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
+
+///|
+test "parse func with percent-escaped param name" {
+  let source = "package wasi:fs;\n\ninterface types {\n  open-at: func(%flags: string) -> string;\n}\n"
+  let result = parse(source)
+  match result {
+    Ok(wit_file) => {
+      assert_eq(wit_file.interfaces.length(), 1)
+      let iface = wit_file.interfaces[0]
+      assert_eq(iface.items.length(), 1)
+      match iface.items[0] {
+        InterfaceItem::Function(func) => {
+          assert_eq(func.name, "open-at")
+          assert_eq(func.params.length(), 1)
+          assert_eq(func.params[0].name, "flags")
+        }
+        _ => abort("expected function item")
+      }
+    }
+    Err(err) => abort("expected parse success, got: " + err.to_string())
+  }
+}
