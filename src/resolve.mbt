@@ -1164,7 +1164,9 @@ fn Resolver::apply_use_decls(
   self : Resolver,
   pkg_id : Int?,
   ifaces : Array[Interface],
-) -> Unit raise ParseError {
+  strict~ : Bool = true,
+) -> Int raise ParseError {
+  let mut unresolved = 0
   for iface in ifaces {
     let iface_id = match self.iface_ids.get(iface_key(pkg_id, iface.name)) {
       Some(id) => id
@@ -1182,7 +1184,12 @@ fn Resolver::apply_use_decls(
           for name in decl.names {
             match target.types.get(name) {
               Some(tid) => builder.types.set(name, tid)
-              None => raise ParseError::Message("unknown type: " + name, 0)
+              None =>
+                if strict {
+                  raise ParseError::Message("unknown type: " + name, 0)
+                } else {
+                  unresolved += 1
+                }
             }
           }
         }
@@ -1190,6 +1197,7 @@ fn Resolver::apply_use_decls(
       }
     }
   }
+  unresolved
 }
 
 ///|
@@ -1638,8 +1646,23 @@ fn resolve_asts(asts : Array[WitFile]) -> Resolve raise ParseError {
     pkg_ids.push(pkg_id)
     resolver.register_interfaces(pkg_id, ast.interfaces)
   }
-  for i, ast in asts {
-    resolver.apply_use_decls(pkg_ids[i], ast.interfaces)
+  // Iteratively resolve use declarations until all are resolved.
+  // Use declarations may depend on other use declarations across packages,
+  // so we retry until convergence (no more unresolved types).
+  let max_iterations = asts.length() + 1
+  for round in 0..<max_iterations {
+    let mut total_unresolved = 0
+    let strict = round == max_iterations - 1
+    for i, ast in asts {
+      total_unresolved += resolver.apply_use_decls(
+        pkg_ids[i],
+        ast.interfaces,
+        strict~,
+      )
+    }
+    if total_unresolved == 0 {
+      break
+    }
   }
   for i, ast in asts {
     resolver.fill_interfaces(pkg_ids[i], ast.interfaces)

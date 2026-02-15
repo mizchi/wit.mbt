@@ -533,6 +533,111 @@ test "parse bare resource declaration" {
 }
 
 ///|
+test "resolve intra-package use with resource type" {
+  // Simulates wasi:io pattern where streams uses error.{error}
+  let source =
+    #|package wasi:io@0.2.9;
+    #|
+    #|interface error {
+    #|  resource error {
+    #|    to-debug-string: func() -> string;
+    #|  }
+    #|}
+    #|
+    #|interface streams {
+    #|  use error.{error};
+    #|
+    #|  variant stream-error {
+    #|    last-operation-failed(error),
+    #|    closed,
+    #|  }
+    #|
+    #|  resource input-stream {
+    #|    read: func(len: u64) -> result<list<u8>, stream-error>;
+    #|  }
+    #|}
+    #|
+    #|world io-world {
+    #|  export streams;
+    #|}
+    #|
+  let result = resolve(source)
+  match result {
+    Ok(resolved) => {
+      let streams = match find_interface_by_name(resolved.interfaces, "streams") {
+        Some(iface) => iface
+        None => abort("missing interface: streams")
+      }
+      assert_true(streams.types.contains("error"))
+      assert_true(streams.types.contains("stream-error"))
+      assert_true(streams.types.contains("input-stream"))
+    }
+    Err(err) => abort("expected resolve success, got: " + err.to_string())
+  }
+}
+
+///|
+test "resolve cross-package use with re-exported type" {
+  // Simulates wasi:filesystem importing from wasi:io/streams
+  // streams has `use error.{error}` and filesystem does
+  // `use wasi:io/streams@0.2.9.{input-stream, error}`
+  let io_source =
+    #|package wasi:io@0.2.9;
+    #|
+    #|interface error {
+    #|  resource error {
+    #|    to-debug-string: func() -> string;
+    #|  }
+    #|}
+    #|
+    #|interface streams {
+    #|  use error.{error};
+    #|
+    #|  resource input-stream {
+    #|    read: func(len: u64) -> result<list<u8>, string>;
+    #|  }
+    #|}
+    #|
+  let fs_source =
+    #|package wasi:filesystem@0.2.9;
+    #|
+    #|interface types {
+    #|  use wasi:io/streams@0.2.9.{input-stream, error};
+    #|
+    #|  get-input: func() -> input-stream;
+    #|}
+    #|
+    #|world fs-world {
+    #|  export types;
+    #|}
+    #|
+  let io_ast = match parse(io_source) {
+    Ok(ast) => ast
+    Err(err) => abort("parse io failed: " + err.to_string())
+  }
+  let fs_ast = match parse(fs_source) {
+    Ok(ast) => ast
+    Err(err) => abort("parse fs failed: " + err.to_string())
+  }
+  // resolve_asts is not public, so use resolve_multi
+  // We need to test via resolve_path or a similar mechanism
+  // For now, test via the internal resolve_asts function
+  // Order matters: fs_ast before io_ast to test dependency resolution
+  let result = resolve_multi([fs_ast, io_ast])
+  match result {
+    Ok(resolved) => {
+      let types = match find_interface_by_name(resolved.interfaces, "types") {
+        Some(iface) => iface
+        None => abort("missing interface: types")
+      }
+      assert_true(types.types.contains("input-stream"))
+      assert_true(types.types.contains("error"))
+    }
+    Err(err) => abort("expected resolve success, got: " + err.to_string())
+  }
+}
+
+///|
 test "tokenize basic" {
   let result = tokenize("package local:hello;")
   inspect(

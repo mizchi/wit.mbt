@@ -17,6 +17,12 @@ pub fn resolve(source : String) -> Result[Resolve, ParseError] {
 }
 
 ///|
+/// Resolve multiple WIT ASTs into a single `Resolve`.
+pub fn resolve_multi(asts : Array[WitFile]) -> Result[Resolve, ParseError] {
+  try? resolve_asts(asts)
+}
+
+///|
 /// Resolve a WIT file or directory (with deps) into a `ResolveInput`.
 pub fn resolve_path(
   path : String,
