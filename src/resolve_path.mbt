@@ -47,22 +47,14 @@ fn sort_strings(items : Array[String]) -> Unit {
 ///|
 fn read_dir_raise(dir : String) -> Array[String] raise ParseError {
   @fs.read_dir(dir) catch {
-    e =>
-      raise ParseError::Message(
-        "read_dir failed: " + dir + " (" + e.to_string() + ")",
-        0,
-      )
+    _ => raise ParseError::Message("read_dir failed: " + dir, 0)
   }
 }
 
 ///|
 fn read_file_raise(path : String) -> String raise ParseError {
   @fs.read_file_to_string(path) catch {
-    e =>
-      raise ParseError::Message(
-        "read failed: " + path + " (" + e.to_string() + ")",
-        0,
-      )
+    _ => raise ParseError::Message("read failed: " + path, 0)
   }
 }
 
@@ -137,7 +129,7 @@ fn parse_dir_raise(dir : String) -> WitFile raise ParseError {
 
 ///|
 fn parse_path_raise(path : String) -> WitFile raise ParseError {
-  if not(@fs.path_exists(path)) {
+  if !@fs.path_exists(path) {
     raise ParseError::Message("path not found: " + path, 0)
   }
   let is_dir = @fs.is_dir(path) catch { _ => false }
@@ -151,11 +143,11 @@ fn parse_path_raise(path : String) -> WitFile raise ParseError {
 ///|
 fn load_deps(wit_dir : String) -> Array[WitFile] raise ParseError {
   let deps_dir = join_path(wit_dir, "deps")
-  if not(@fs.path_exists(deps_dir)) {
+  if !@fs.path_exists(deps_dir) {
     return []
   }
   let is_dir = @fs.is_dir(deps_dir) catch { _ => false }
-  if not(is_dir) {
+  if !is_dir {
     return []
   }
   let entries = read_dir_raise(deps_dir)

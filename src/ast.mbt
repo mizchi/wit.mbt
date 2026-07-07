@@ -3,41 +3,71 @@ pub struct PackageName {
   ns : String
   name : String
   version : String?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for PackageName with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct WitFile {
   pkg : PackageName?
   interfaces : Array[Interface]
   worlds : Array[World]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for WitFile with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct Interface {
   name : String
   docs : String?
   items : Array[InterfaceItem]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for Interface with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub enum InterfaceItem {
   Use(UseDecl)
   TypeDef(TypeDef)
   Function(Function)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for InterfaceItem with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct UseDecl {
   from : UsePath
   names : Array[String]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for UseDecl with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct TypeDef {
   name : String
   kind : TypeDefKind
   docs : String?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for TypeDef with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub enum TypeDefKind {
@@ -47,24 +77,44 @@ pub enum TypeDefKind {
   Variant(Array[VariantCase])
   Alias(TypeExpr)
   Resource(Resource)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for TypeDefKind with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct Resource {
   funcs : Array[Function]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for Resource with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct Field {
   name : String
   ty : TypeExpr
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for Field with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct VariantCase {
   name : String
   ty : TypeExpr?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for VariantCase with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct Function {
@@ -73,7 +123,12 @@ pub struct Function {
   params : Array[Param]
   result : TypeExpr?
   docs : String?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for Function with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub enum FunctionKind {
@@ -81,13 +136,23 @@ pub enum FunctionKind {
   Constructor(String)
   Method(String)
   Static(String)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for FunctionKind with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct Param {
   name : String
   ty : TypeExpr
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for Param with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub enum TypeExpr {
@@ -113,7 +178,12 @@ pub enum TypeExpr {
   Tuple(Array[TypeExpr])
   Own(String)
   Borrow(String)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for TypeExpr with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct World {
@@ -122,7 +192,12 @@ pub struct World {
   types : Array[TypeDef]
   imports : Array[WorldItem]
   exports : Array[WorldItem]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for World with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub enum WorldItem {
@@ -130,34 +205,64 @@ pub enum WorldItem {
   Function(Function)
   InlineInterface(InlineInterface)
   Include(IncludeDecl)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for WorldItem with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct InlineInterface {
   name : String
   docs : String?
   items : Array[InterfaceItem]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for InlineInterface with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct UsePath {
   pkg : PackageName?
   interface : String
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for UsePath with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct IncludeDecl {
   path : UsePath
   renames : Array[IncludeRename]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for IncludeDecl with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct IncludeRename {
   from : String
   to : String
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for IncludeRename with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub suberror ParseError {
   Message(String, Int)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for ParseError with fn to_string(self) {
+  repr(self)
+}

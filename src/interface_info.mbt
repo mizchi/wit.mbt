@@ -8,7 +8,12 @@ pub struct ResolvedTypeInfo {
   owner_package : RPackageName?
   owner_interface : String?
   owner_world : String?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for ResolvedTypeInfo with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct ResolvedInterfaceInfo {
@@ -18,7 +23,12 @@ pub struct ResolvedInterfaceInfo {
   package_name : RPackageName?
   functions : Map[String, RFunction]
   types : Map[String, ResolvedTypeInfo]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for ResolvedInterfaceInfo with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 fn package_name_from_id(resolve : Resolve, pkg_id : Int?) -> RPackageName? {

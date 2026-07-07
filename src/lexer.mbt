@@ -7,13 +7,23 @@ pub enum TokenType {
   Number(String)
   Doc(String)
   Eof
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for TokenType with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct Token {
   token_type : TokenType
   offset : Int
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for Token with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 priv struct Lexer {
@@ -120,7 +130,6 @@ fn Lexer::skip_whitespace(self : Lexer) -> Unit {
     match self.peek_char() {
       Some(c) if c.is_ascii_whitespace() => {
         let _ = self.advance()
-
       }
       _ => break
     }
@@ -135,7 +144,6 @@ fn Lexer::read_ident(self : Lexer) -> String {
       Some(c) if is_ident_continue(c) => {
         buf.write_char(c)
         let _ = self.advance()
-
       }
       _ => break
     }
@@ -177,7 +185,6 @@ fn Lexer::read_line_comment(self : Lexer) -> String {
       Some(c) => {
         buf.write_char(c)
         let _ = self.advance()
-
       }
     }
   }
@@ -252,9 +259,8 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
         let _ = lexer.advance()
         if lexer.peek_char() == Some('/') {
           let _ = lexer.advance()
-
         }
-        let text = lexer.read_line_comment().trim().to_string()
+        let text = lexer.read_line_comment().trim().to_owned()
         tokens.push({ token_type: Doc(text), offset })
       }
       Some('%') => {
@@ -327,5 +333,7 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
 
 ///|
 pub fn tokenize(source : String) -> Result[Array[Token], ParseError] {
-  try? tokenize_raise(source)
+  Ok(tokenize_raise(source)) catch {
+    e => Err(e)
+  }
 }

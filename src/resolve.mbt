@@ -15,7 +15,12 @@ pub enum RType {
   Char
   String_
   Id(Int)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RType with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 /// Function kind
@@ -24,7 +29,12 @@ pub enum RFunctionKind {
   Constructor(Int)
   Method(Int)
   Static(Int)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RFunctionKind with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 /// Function definition
@@ -34,7 +44,12 @@ pub struct RFunction {
   params : Array[(String, RType)]
   result : RType?
   docs : String?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RFunction with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 /// World item
@@ -42,12 +57,22 @@ pub enum RWorldItem {
   Interface(RInterfaceRef)
   Function(RFunction)
   Type(Int)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RWorldItem with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct RInterfaceRef {
   id : Int
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RInterfaceRef with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct RInterface {
@@ -56,7 +81,12 @@ pub struct RInterface {
   functions : Map[String, RFunction]
   types : Map[String, Int]
   pkg : Int?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RInterface with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct RWorld {
@@ -65,46 +95,81 @@ pub struct RWorld {
   imports : Map[String, RWorldItem]
   exports : Map[String, RWorldItem]
   pkg : Int?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RWorld with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct RPackageName {
   ns : String
   name : String
   version : String?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RPackageName with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct RPackage {
   name : RPackageName
   interfaces : Map[String, Int]
   worlds : Map[String, Int]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RPackage with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub enum RTypeOwner {
   Interface(Int)
   World(Int)
   None
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RTypeOwner with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct RRecordField {
   name : String
   field_type : RType
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RRecordField with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct RVariantCase {
   name : String
   case_type : RType?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RVariantCase with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub enum RHandleKind {
   Own(Int)
   Borrow(Int)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RHandleKind with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub enum RTypeKind {
@@ -121,7 +186,12 @@ pub enum RTypeKind {
   Alias(RType)
   Resource
   Handle(RHandleKind)
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RTypeKind with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct RTypeDef {
@@ -129,7 +199,12 @@ pub struct RTypeDef {
   kind : RTypeKind
   owner : RTypeOwner
   docs : String?
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for RTypeDef with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct Resolve {
@@ -137,13 +212,23 @@ pub struct Resolve {
   interfaces : Array[RInterface]
   types : Array[RTypeDef]
   packages : Array[RPackage]
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for Resolve with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 pub struct ResolveInput {
   resolve : Resolve
   world_id : Int
-} derive(Show, Eq)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for ResolveInput with fn to_string(self) {
+  repr(self)
+}
 
 ///|
 fn json_number(value : Int) -> Json {
@@ -320,7 +405,7 @@ fn type_kind_key(kind : RTypeKind) -> String {
 }
 
 ///|
-pub impl ToJson for RType with to_json(self) {
+pub impl ToJson for RType with fn to_json(self) {
   match self {
     RType::Bool => json_string("bool")
     RType::U8 => json_string("u8")
@@ -340,7 +425,7 @@ pub impl ToJson for RType with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RFunctionKind with to_json(self) {
+pub impl ToJson for RFunctionKind with fn to_json(self) {
   match self {
     RFunctionKind::Freestanding => json_string("freestanding")
     RFunctionKind::Constructor(id) =>
@@ -351,7 +436,7 @@ pub impl ToJson for RFunctionKind with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RFunction with to_json(self) {
+pub impl ToJson for RFunction with fn to_json(self) {
   let params_json : Array[Json] = []
   for item in self.params {
     let (name, ty) = item
@@ -391,7 +476,7 @@ fn world_items_to_json(items : Map[String, RWorldItem]) -> Json {
 }
 
 ///|
-pub impl ToJson for RWorldItem with to_json(self) {
+pub impl ToJson for RWorldItem with fn to_json(self) {
   match self {
     RWorldItem::Interface(iface_ref) =>
       Json::object({ "interface": iface_ref.to_json() })
@@ -401,12 +486,12 @@ pub impl ToJson for RWorldItem with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RInterfaceRef with to_json(self) {
+pub impl ToJson for RInterfaceRef with fn to_json(self) {
   Json::object({ "id": json_number(self.id) })
 }
 
 ///|
-pub impl ToJson for RInterface with to_json(self) {
+pub impl ToJson for RInterface with fn to_json(self) {
   let obj : Map[String, Json] = {}
   match self.docs {
     Some(text) => obj.set("docs", json_docs(text))
@@ -420,7 +505,7 @@ pub impl ToJson for RInterface with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RWorld with to_json(self) {
+pub impl ToJson for RWorld with fn to_json(self) {
   let obj : Map[String, Json] = {}
   match self.docs {
     Some(text) => obj.set("docs", json_docs(text))
@@ -434,12 +519,12 @@ pub impl ToJson for RWorld with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RPackageName with to_json(self) {
+pub impl ToJson for RPackageName with fn to_json(self) {
   json_string(package_name_string(self))
 }
 
 ///|
-pub impl ToJson for RPackage with to_json(self) {
+pub impl ToJson for RPackage with fn to_json(self) {
   Json::object({
     "interfaces": map_sorted_to_json(self.interfaces),
     "name": self.name.to_json(),
@@ -448,7 +533,7 @@ pub impl ToJson for RPackage with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RTypeOwner with to_json(self) {
+pub impl ToJson for RTypeOwner with fn to_json(self) {
   match self {
     RTypeOwner::Interface(id) => Json::object({ "interface": json_number(id) })
     RTypeOwner::World(id) => Json::object({ "world": json_number(id) })
@@ -457,7 +542,7 @@ pub impl ToJson for RTypeOwner with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RRecordField with to_json(self) {
+pub impl ToJson for RRecordField with fn to_json(self) {
   Json::object({
     "name": json_string(self.name),
     "type": self.field_type.to_json(),
@@ -465,7 +550,7 @@ pub impl ToJson for RRecordField with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RVariantCase with to_json(self) {
+pub impl ToJson for RVariantCase with fn to_json(self) {
   Json::object({
     "name": json_string(self.name),
     "type": json_option(self.case_type),
@@ -473,7 +558,7 @@ pub impl ToJson for RVariantCase with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RHandleKind with to_json(self) {
+pub impl ToJson for RHandleKind with fn to_json(self) {
   match self {
     RHandleKind::Own(id) => Json::object({ "own": json_number(id) })
     RHandleKind::Borrow(id) => Json::object({ "borrow": json_number(id) })
@@ -481,7 +566,7 @@ pub impl ToJson for RHandleKind with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RTypeKind with to_json(self) {
+pub impl ToJson for RTypeKind with fn to_json(self) {
   match self {
     RTypeKind::Record(fields) =>
       Json::object({ "record": Json::object({ "fields": fields.to_json() }) })
@@ -525,7 +610,7 @@ pub impl ToJson for RTypeKind with to_json(self) {
 }
 
 ///|
-pub impl ToJson for RTypeDef with to_json(self) {
+pub impl ToJson for RTypeDef with fn to_json(self) {
   let obj : Map[String, Json] = {}
   match self.docs {
     Some(text) => obj.set("docs", json_docs(text))
@@ -538,7 +623,7 @@ pub impl ToJson for RTypeDef with to_json(self) {
 }
 
 ///|
-pub impl ToJson for Resolve with to_json(self) {
+pub impl ToJson for Resolve with fn to_json(self) {
   Json::object({
     "interfaces": self.interfaces.to_json(),
     "packages": self.packages.to_json(),
@@ -548,7 +633,7 @@ pub impl ToJson for Resolve with to_json(self) {
 }
 
 ///|
-pub impl ToJson for ResolveInput with to_json(self) {
+pub impl ToJson for ResolveInput with fn to_json(self) {
   Json::object({
     "resolve": self.resolve.to_json(),
     "world_id": json_number(self.world_id),
@@ -1164,7 +1249,7 @@ fn Resolver::apply_use_decls(
   self : Resolver,
   pkg_id : Int?,
   ifaces : Array[Interface],
-  strict~ : Bool = true,
+  strict? : Bool = true,
 ) -> Int raise ParseError {
   let mut unresolved = 0
   for iface in ifaces {
