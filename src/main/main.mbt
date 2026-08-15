@@ -1,6 +1,6 @@
 ///|
 fn main {
-  let args = @sys.get_cli_args()
+  let args = @env.args()
   if args.length() < 2 {
     println("Usage: wit-resolve <wit-path> [world]")
     @sys.exit(1)
