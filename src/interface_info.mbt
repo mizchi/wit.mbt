@@ -89,7 +89,7 @@ fn build_resolved_type_info(
 pub fn interface_infos(resolve : Resolve) -> Array[ResolvedInterfaceInfo] {
   let infos : Array[ResolvedInterfaceInfo] = []
   for interface_id, iface in resolve.interfaces {
-    let type_infos : Map[String, ResolvedTypeInfo] = {}
+    let type_infos : Map[String, ResolvedTypeInfo] = Map([])
     for local_name, type_id in iface.types {
       let info = build_resolved_type_info(resolve, local_name, type_id)
       type_infos.set(local_name, info)

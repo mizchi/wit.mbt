@@ -307,7 +307,7 @@ fn[T : ToJson] map_sorted_to_json(items : Map[String, T]) -> Json {
     keys.push(key)
   }
   sort_strings_for_json(keys)
-  let result : Map[String, Json] = {}
+  let result : Map[String, Json] = Map([])
   for key in keys {
     match items.get(key) {
       Option::Some(value) => result.set(key, value.to_json())
@@ -444,7 +444,7 @@ pub impl ToJson for RFunction with fn to_json(self) {
       Json::object({ "name": json_string(name), "type": ty.to_json() }),
     )
   }
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match self.docs {
     Some(text) => obj.set("docs", json_docs(text))
     None => ()
@@ -461,7 +461,7 @@ pub impl ToJson for RFunction with fn to_json(self) {
 
 ///|
 fn world_items_to_json(items : Map[String, RWorldItem]) -> Json {
-  let result : Map[String, Json] = {}
+  let result : Map[String, Json] = Map([])
   for name, item in items {
     match item {
       RWorldItem::Interface(iface_ref) =>
@@ -492,7 +492,7 @@ pub impl ToJson for RInterfaceRef with fn to_json(self) {
 
 ///|
 pub impl ToJson for RInterface with fn to_json(self) {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match self.docs {
     Some(text) => obj.set("docs", json_docs(text))
     None => ()
@@ -506,7 +506,7 @@ pub impl ToJson for RInterface with fn to_json(self) {
 
 ///|
 pub impl ToJson for RWorld with fn to_json(self) {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match self.docs {
     Some(text) => obj.set("docs", json_docs(text))
     None => ()
@@ -611,7 +611,7 @@ pub impl ToJson for RTypeKind with fn to_json(self) {
 
 ///|
 pub impl ToJson for RTypeDef with fn to_json(self) {
-  let obj : Map[String, Json] = {}
+  let obj : Map[String, Json] = Map([])
   match self.docs {
     Some(text) => obj.set("docs", json_docs(text))
     None => ()
@@ -1450,10 +1450,10 @@ fn Resolver::fill_worlds(
   worlds : Array[World],
 ) -> Unit raise ParseError {
   for world in worlds {
-    let imports : Map[String, RWorldItem] = {}
-    let exports : Map[String, RWorldItem] = {}
+    let imports : Map[String, RWorldItem] = Map([])
+    let exports : Map[String, RWorldItem] = Map([])
     let world_id = self.worlds.length()
-    let world_types : Map[String, Int] = {}
+    let world_types : Map[String, Int] = Map([])
     for def in world.types {
       if world_types.contains(def.name) {
         raise ParseError::Message("duplicate type: " + def.name, 0)
