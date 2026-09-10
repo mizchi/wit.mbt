@@ -7,7 +7,7 @@ priv struct Parser {
 
 ///|
 fn Parser::new(tokens : Array[Token]) -> Parser {
-  { tokens, pos: 0, pending_docs: [] }
+  { tokens, pos: 0, pending_docs: [], }
 }
 
 ///|
@@ -25,7 +25,7 @@ fn Parser::consume_docs(self : Parser) -> Unit {
 
 ///|
 fn join_docs(lines : Array[String]) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i, line in lines {
     if i > 0 {
       buf.write_char('\n')
@@ -234,7 +234,7 @@ fn is_version_separator(token : TokenType) -> Bool {
 
 ///|
 fn Parser::parse_version(self : Parser) -> String raise ParseError {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   if !is_version_atom(self.peek().token_type) {
     raise self.error("expected version")
   }
@@ -270,7 +270,7 @@ fn Parser::parse_package(self : Parser) -> PackageName raise ParseError {
     version = Some(v)
   }
   self.expect_symbol(";")
-  { ns, name, version }
+  { ns, name, version, }
 }
 
 ///|
@@ -294,10 +294,10 @@ fn Parser::parse_use_path(self : Parser) -> UsePath raise ParseError {
       let v = self.parse_version()
       version = Some(v)
     }
-    let pkg : PackageName = { ns: first, name, version }
-    { pkg: Some(pkg), interface: iface }
+    let pkg : PackageName = { ns: first, name, version, }
+    { pkg: Some(pkg), interface: iface, }
   } else {
-    { pkg: None, interface: first }
+    { pkg: None, interface: first, }
   }
 }
 
@@ -455,7 +455,7 @@ fn Parser::parse_params(self : Parser) -> Array[Param] raise ParseError {
     let name = self.expect_ident()
     self.expect_symbol(":")
     let ty = self.parse_type_expr()
-    params.push({ name, ty })
+    params.push({ name, ty, })
     if self.match_symbol(",") {
       if self.match_symbol(")") {
         break
@@ -485,7 +485,7 @@ fn Parser::parse_function(
     result = Some(ty)
   }
   self.expect_symbol(";")
-  { name, kind, params, result, docs }
+  { name, kind, params, result, docs, }
 }
 
 ///|
@@ -558,7 +558,7 @@ fn Parser::parse_resource(
 ) -> TypeDef raise ParseError {
   // Bare resource declaration: `resource foo;`
   if self.match_symbol(";") {
-    return { name, kind: Resource({ funcs: [] }), docs }
+    return { name, kind: Resource({ funcs: [], }), docs, }
   }
   self.expect_symbol("{")
   let funcs : Array[Function] = []
@@ -580,7 +580,7 @@ fn Parser::parse_resource(
     let func = self.parse_resource_function(name, func_docs)
     funcs.push(func)
   }
-  { name, kind: Resource({ funcs, }), docs }
+  { name, kind: Resource({ funcs, }), docs, }
 }
 
 ///|
@@ -598,14 +598,14 @@ fn Parser::parse_record(
     let field_name = self.expect_ident()
     self.expect_symbol(":")
     let ty = self.parse_type_expr()
-    fields.push({ name: field_name, ty })
+    fields.push({ name: field_name, ty, })
     if self.match_symbol(",") {
       continue
     }
     self.expect_symbol("}")
     break
   }
-  { name, kind: Record(fields), docs }
+  { name, kind: Record(fields), docs, }
 }
 
 ///|
@@ -628,7 +628,7 @@ fn Parser::parse_enum(
     self.expect_symbol("}")
     break
   }
-  { name, kind: Enum(cases), docs }
+  { name, kind: Enum(cases), docs, }
 }
 
 ///|
@@ -651,7 +651,7 @@ fn Parser::parse_flags(
     self.expect_symbol("}")
     break
   }
-  { name, kind: Flags(cases), docs }
+  { name, kind: Flags(cases), docs, }
 }
 
 ///|
@@ -673,14 +673,14 @@ fn Parser::parse_variant(
       payload = Some(ty)
       self.expect_symbol(")")
     }
-    cases.push({ name: case_name, ty: payload })
+    cases.push({ name: case_name, ty: payload, })
     if self.match_symbol(",") {
       continue
     }
     self.expect_symbol("}")
     break
   }
-  { name, kind: Variant(cases), docs }
+  { name, kind: Variant(cases), docs, }
 }
 
 ///|
@@ -692,7 +692,7 @@ fn Parser::parse_type_alias(
   self.expect_symbol("=")
   let ty = self.parse_type_expr()
   self.expect_symbol(";")
-  { name, kind: Alias(ty), docs }
+  { name, kind: Alias(ty), docs, }
 }
 
 ///|
@@ -714,7 +714,7 @@ fn Parser::parse_use_decl(self : Parser) -> UseDecl raise ParseError {
     break
   }
   self.expect_symbol(";")
-  { from, names }
+  { from, names, }
 }
 
 ///|
@@ -727,7 +727,7 @@ fn Parser::parse_include_item(self : Parser) -> IncludeDecl raise ParseError {
       let from = self.expect_ident()
       self.expect_keyword("as")
       let to = self.expect_ident()
-      renames.push({ from, to })
+      renames.push({ from, to, })
       if self.match_symbol(",") {
         continue
       }
@@ -736,7 +736,7 @@ fn Parser::parse_include_item(self : Parser) -> IncludeDecl raise ParseError {
     }
   }
   self.expect_symbol(";")
-  { path, renames }
+  { path, renames, }
 }
 
 ///|
@@ -746,7 +746,7 @@ fn Parser::parse_interface(
 ) -> Interface raise ParseError {
   let name = self.expect_ident()
   let items = self.parse_interface_items()
-  { name, docs, items }
+  { name, docs, items, }
 }
 
 ///|
@@ -875,7 +875,7 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
         self.expect_symbol(":")
         self.expect_keyword("interface")
         let items = self.parse_interface_items()
-        imports.push(InlineInterface({ name, docs: item_docs, items }))
+        imports.push(InlineInterface({ name, docs: item_docs, items, }))
       } else {
         let path = self.parse_use_path()
         self.expect_symbol(";")
@@ -892,7 +892,7 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
         self.expect_symbol(":")
         self.expect_keyword("interface")
         let items = self.parse_interface_items()
-        exports.push(InlineInterface({ name, docs: item_docs, items }))
+        exports.push(InlineInterface({ name, docs: item_docs, items, }))
       } else {
         let path = self.parse_use_path()
         self.expect_symbol(";")
@@ -902,7 +902,7 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
     }
     raise self.error("unexpected world item")
   }
-  { name, docs, types, imports, exports }
+  { name, docs, types, imports, exports, }
 }
 
 ///|
@@ -937,5 +937,5 @@ fn parse_wit(source : String) -> WitFile raise ParseError {
     }
     raise parser.error("unexpected top-level item")
   }
-  { pkg, interfaces, worlds }
+  { pkg, interfaces, worlds, }
 }

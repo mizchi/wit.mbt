@@ -347,7 +347,7 @@ fn type_key_option(value : RType?) -> String {
 
 ///|
 fn type_kind_key(kind : RTypeKind) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   match kind {
     RTypeKind::List(inner) => {
       buf.write_string("list(")
@@ -702,7 +702,7 @@ fn Resolver::ensure_package(self : Resolver, pkg : RPackageName) -> Int {
     Some(id) => id
     None => {
       let id = self.packages.length()
-      let pkg_def : RPackage = { name: pkg, interfaces: {}, worlds: {} }
+      let pkg_def : RPackage = { name: pkg, interfaces: {}, worlds: {}, }
       self.packages.push(pkg_def)
       self.package_ids.set(key, id)
       id
@@ -762,7 +762,7 @@ fn Resolver::new_inline_interface(
 
 ///|
 fn to_rpkg(pkg : PackageName) -> RPackageName {
-  { ns: pkg.ns, name: pkg.name, version: pkg.version }
+  { ns: pkg.ns, name: pkg.name, version: pkg.version, }
 }
 
 ///|
@@ -917,12 +917,12 @@ fn Resolver::resolve_function(
     Some(r) => Some(self.resolve_type_expr(iface_id, r))
     None => None
   }
-  { name: func.name, kind, params, result, docs: func.docs }
+  { name: func.name, kind, params, result, docs: func.docs, }
 }
 
 ///|
 fn build_world_type_scope(world_types : Map[String, Int]) -> WorldTypeScope {
-  let scope : WorldTypeScope = { types: {}, ambiguous: {} }
+  let scope : WorldTypeScope = { types: {}, ambiguous: {}, }
   for name, type_id in world_types {
     scope.types.set(name, type_id)
   }
@@ -1304,7 +1304,7 @@ fn Resolver::fill_interface(
             let resolved : Array[RRecordField] = []
             for field in fields {
               let ty = self.resolve_type_expr(iface_id, field.ty)
-              resolved.push({ name: field.name, field_type: ty })
+              resolved.push({ name: field.name, field_type: ty, })
             }
             RTypeKind::Record(resolved)
           }
@@ -1317,7 +1317,7 @@ fn Resolver::fill_interface(
                 Some(t) => Some(self.resolve_type_expr(iface_id, t))
                 None => None
               }
-              resolved.push({ name: case.name, case_type: ty })
+              resolved.push({ name: case.name, case_type: ty, })
             }
             RTypeKind::Variant(resolved)
           }
@@ -1479,7 +1479,7 @@ fn Resolver::fill_worlds(
           let resolved : Array[RRecordField] = []
           for field in fields {
             let ty = self.resolve_type_expr_world(world_scope, field.ty)
-            resolved.push({ name: field.name, field_type: ty })
+            resolved.push({ name: field.name, field_type: ty, })
           }
           RTypeKind::Record(resolved)
         }
@@ -1492,7 +1492,7 @@ fn Resolver::fill_worlds(
               Some(t) => Some(self.resolve_type_expr_world(world_scope, t))
               None => None
             }
-            resolved.push({ name: case.name, case_type: ty })
+            resolved.push({ name: case.name, case_type: ty, })
           }
           RTypeKind::Variant(resolved)
         }
@@ -1623,7 +1623,7 @@ fn Resolver::fill_worlds(
             }
           }
           let key = "interface-" + iface_id.to_string()
-          imports.set(key, Interface({ id: iface_id }))
+          imports.set(key, Interface({ id: iface_id, }))
         }
         WorldItem::InlineInterface(inline) => {
           let iface_id = self.new_inline_interface(pkg_id, inline.docs)
@@ -1635,7 +1635,7 @@ fn Resolver::fill_worlds(
             items: inline.items,
           }
           self.fill_interface(iface_id, iface_ast)
-          imports.set(inline.name, Interface({ id: iface_id }))
+          imports.set(inline.name, Interface({ id: iface_id, }))
         }
         WorldItem::Function(func) => {
           let resolved = self.resolve_world_function(func, world_scope)
@@ -1664,7 +1664,7 @@ fn Resolver::fill_worlds(
             }
           }
           let key = "interface-" + iface_id.to_string()
-          exports.set(key, Interface({ id: iface_id }))
+          exports.set(key, Interface({ id: iface_id, }))
         }
         WorldItem::InlineInterface(inline) => {
           let iface_id = self.new_inline_interface(pkg_id, inline.docs)
@@ -1676,7 +1676,7 @@ fn Resolver::fill_worlds(
             items: inline.items,
           }
           self.fill_interface(iface_id, iface_ast)
-          exports.set(inline.name, Interface({ id: iface_id }))
+          exports.set(inline.name, Interface({ id: iface_id, }))
         }
         WorldItem::Function(func) => {
           let resolved = self.resolve_world_function(func, world_scope)

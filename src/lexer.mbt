@@ -33,7 +33,7 @@ priv struct Lexer {
 
 ///|
 fn Lexer::new(source : String) -> Lexer {
-  { input: source.to_array(), pos: 0 }
+  { input: source.to_array(), pos: 0, }
 }
 
 ///|
@@ -138,7 +138,7 @@ fn Lexer::skip_whitespace(self : Lexer) -> Unit {
 
 ///|
 fn Lexer::read_ident(self : Lexer) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   while true {
     match self.peek_char() {
       Some(c) if is_ident_continue(c) => {
@@ -153,7 +153,7 @@ fn Lexer::read_ident(self : Lexer) -> String {
 
 ///|
 fn Lexer::read_number(self : Lexer) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   while true {
     match self.peek_char() {
       Some(c) if c.is_ascii_digit() => {
@@ -178,7 +178,7 @@ fn Lexer::read_number(self : Lexer) -> String {
 
 ///|
 fn Lexer::read_line_comment(self : Lexer) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   while true {
     match self.peek_char() {
       Some('\n') | None => break
@@ -195,7 +195,7 @@ fn Lexer::read_line_comment(self : Lexer) -> String {
 fn Lexer::read_string(self : Lexer) -> String raise ParseError {
   let start = self.pos
   let _ = self.advance()
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   while true {
     match self.peek_char() {
       None => raise ParseError::Message("unterminated string", start)
@@ -251,7 +251,7 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
     let offset = lexer.pos
     match lexer.peek_char() {
       None => {
-        tokens.push({ token_type: Eof, offset })
+        tokens.push({ token_type: Eof, offset, })
         break
       }
       Some('/') if lexer.peek_next() == Some('/') => {
@@ -261,14 +261,14 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
           let _ = lexer.advance()
         }
         let text = lexer.read_line_comment().trim().to_owned()
-        tokens.push({ token_type: Doc(text), offset })
+        tokens.push({ token_type: Doc(text), offset, })
       }
       Some('%') => {
         let _ = lexer.advance()
         match lexer.peek_char() {
           Some(c) if is_ident_start(c) => {
             let ident = lexer.read_ident()
-            tokens.push({ token_type: Ident(ident), offset })
+            tokens.push({ token_type: Ident(ident), offset, })
           }
           _ => raise ParseError::Message("expected identifier after %", offset)
         }
@@ -280,26 +280,26 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
         } else {
           Ident(ident)
         }
-        tokens.push({ token_type, offset })
+        tokens.push({ token_type, offset, })
       }
       Some(c) if c.is_ascii_digit() => {
         let num = lexer.read_number()
-        tokens.push({ token_type: Number(num), offset })
+        tokens.push({ token_type: Number(num), offset, })
       }
       Some('"') => {
         let value = lexer.read_string()
-        tokens.push({ token_type: StringLit(value), offset })
+        tokens.push({ token_type: StringLit(value), offset, })
       }
       Some('-') =>
         match lexer.peek_next() {
           Some('>') => {
             let _ = lexer.advance()
             let _ = lexer.advance()
-            tokens.push({ token_type: Symbol("->"), offset })
+            tokens.push({ token_type: Symbol("->"), offset, })
           }
           _ => {
             let _ = lexer.advance()
-            tokens.push({ token_type: Symbol("-"), offset })
+            tokens.push({ token_type: Symbol("-"), offset, })
           }
         }
       Some(c) => {
@@ -324,7 +324,7 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
         if sym == "" {
           raise ParseError::Message("unexpected character", offset)
         }
-        tokens.push({ token_type: Symbol(sym), offset })
+        tokens.push({ token_type: Symbol(sym), offset, })
       }
     }
   }

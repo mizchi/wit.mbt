@@ -46,7 +46,7 @@ fn sort_strings(items : Array[String]) -> Unit {
 
 ///|
 fn read_dir_raise(dir : String) -> Array[String] raise ParseError {
-  @fs.read_dir(dir) catch {
+  @fs.read_dir(dir).to_owned() catch {
     _ => raise ParseError::Message("read_dir failed: " + dir, 0)
   }
 }
@@ -92,7 +92,7 @@ fn merge_wit_files(
   for world in next.worlds {
     worlds.push(world)
   }
-  { pkg, interfaces, worlds }
+  { pkg, interfaces, worlds, }
 }
 
 ///|
@@ -233,5 +233,5 @@ fn resolve_path_raise(
   asts.push(main_ast)
   let resolve = resolve_asts(asts)
   let world_id = find_world_id(resolve, main_ast.pkg, main_ast.worlds, world)
-  { resolve, world_id }
+  { resolve, world_id, }
 }

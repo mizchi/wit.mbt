@@ -1,9 +1,9 @@
 name = "mizchi/wit"
 
-version = "0.3.2"
+version = "0.3.3"
 
 import {
-  "moonbitlang/x@0.4.50",
+  "moonbitlang/x@0.5.4",
 }
 
 readme = "README.mbt.md"
