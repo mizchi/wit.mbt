@@ -1,0 +1,19 @@
+package test:transitive;
+
+/** Shared types. */
+interface shared {
+  record metadata { value: u32 }
+}
+interface middle { use shared.{metadata}; }
+interface api {
+  use middle.{metadata};
+  /// Read metadata.
+  get: func() -> metadata;
+}
+world app {
+  import host: interface {
+    use shared.{metadata};
+    get: func() -> metadata;
+  }
+  export api;
+}

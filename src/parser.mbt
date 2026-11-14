@@ -113,9 +113,12 @@ fn Parser::is_world_func_decl(self : Parser) -> Bool {
       self.peek_n(1).token_type,
       self.peek_n(2).token_type,
     ) {
-    (Ident(_), Symbol(sym), Ident("get" | "set")) if sym == ":" => true
-    (Ident(_), Symbol(sym), Keyword(kw)) if sym == ":" && kw == "func" => true
-    (Ident(_), Symbol(sym), Keyword(kw)) if sym == ":" && kw == "async" =>
+    (Ident(_) | ExplicitIdent(_), Symbol(sym), Ident("get" | "set")) if sym ==
+      ":" => true
+    (Ident(_) | ExplicitIdent(_), Symbol(sym), Keyword(kw)) if sym == ":" &&
+      kw == "func" => true
+    (Ident(_) | ExplicitIdent(_), Symbol(sym), Keyword(kw)) if sym == ":" &&
+      kw == "async" =>
       match self.peek_n(3).token_type {
         Keyword(next_kw) if next_kw == "func" => true
         _ => false
@@ -132,8 +135,8 @@ fn Parser::is_world_inline_interface_decl(self : Parser) -> Bool {
       self.peek_n(1).token_type,
       self.peek_n(2).token_type,
     ) {
-    (Ident(_), Symbol(sym), Keyword(kw)) if sym == ":" && kw == "interface" =>
-      true
+    (Ident(_) | ExplicitIdent(_), Symbol(sym), Keyword(kw)) if sym == ":" &&
+      kw == "interface" => true
     _ => false
   }
 }
@@ -183,7 +186,7 @@ fn Parser::expect_keyword(self : Parser, kw : String) -> Unit raise ParseError {
 ///|
 fn Parser::expect_ident(self : Parser) -> String raise ParseError {
   match self.peek().token_type {
-    Ident(s) => {
+    Ident(s) | ExplicitIdent(s) => {
       if !valid_wit_identifier(s) {
         raise self.error("invalid WIT identifier: " + s)
       }
@@ -195,42 +198,65 @@ fn Parser::expect_ident(self : Parser) -> String raise ParseError {
 }
 
 ///|
-fn Parser::skip_gate_args(self : Parser) -> Unit raise ParseError {
-  self.expect_symbol("(")
-  let mut depth = 1
-  while depth > 0 {
-    let tok = self.advance()
-    match tok.token_type {
-      Eof => raise self.error("unterminated gate annotation")
-      Symbol(sym) if sym == "(" => depth += 1
-      Symbol(sym) if sym == ")" => depth -= 1
-      _ => ()
-    }
-  }
-}
-
-///|
-fn Parser::parse_annotations(self : Parser) -> String? raise ParseError {
+fn Parser::parse_annotations(
+  self : Parser,
+) -> (Attributes, String?) raise ParseError {
+  let mut since : String? = None
+  let mut unstable : String? = None
+  let mut deprecated : String? = None
   let mut external_id : String? = None
   while self.match_symbol("@") {
     let name = self.expect_ident()
+    self.expect_symbol("(")
     match name {
       "external-id" => {
         if external_id is Some(_) {
           raise self.error("duplicate external-id")
         }
-        self.expect_symbol("(")
         match self.advance().token_type {
           StringLit(value) => external_id = Some(value)
           _ => raise self.error("expected external-id string")
         }
-        self.expect_symbol(")")
       }
-      "since" | "unstable" | "deprecated" => self.skip_gate_args()
+      "since" | "deprecated" => {
+        if self.expect_ident() != "version" {
+          raise self.error("expected version field")
+        }
+        self.expect_symbol("=")
+        let version = self.parse_version()
+        if name == "since" {
+          if since is Some(_) {
+            raise self.error("duplicate since")
+          }
+          since = Some(version)
+        } else {
+          if deprecated is Some(_) {
+            raise self.error("duplicate deprecated")
+          }
+          deprecated = Some(version)
+        }
+      }
+      "unstable" => {
+        if unstable is Some(_) {
+          raise self.error("duplicate unstable")
+        }
+        if self.expect_ident() != "feature" {
+          raise self.error("expected feature field")
+        }
+        self.expect_symbol("=")
+        unstable = Some(self.expect_ident())
+      }
       _ => raise self.error("unknown annotation: " + name)
     }
+    self.expect_symbol(")")
   }
-  external_id
+  if since is Some(_) && unstable is Some(_) {
+    raise self.error("since and unstable are mutually exclusive")
+  }
+  if deprecated is Some(_) && since is None && unstable is None {
+    raise self.error("deprecated requires since or unstable")
+  }
+  ({ since, unstable, deprecated, }, external_id)
 }
 
 ///|
@@ -496,7 +522,7 @@ fn Parser::parse_type_expr(self : Parser) -> TypeExpr raise ParseError {
       self.expect_symbol(">")
       Borrow(name)
     }
-    Ident(name) => {
+    Ident(name) | ExplicitIdent(name) => {
       ignore(self.advance())
       if name == "_" {
         raise self.error("unexpected type placeholder")
@@ -549,7 +575,15 @@ fn Parser::parse_function(
   }
   self.validate_accessor_signature(kind, params, result)
   self.expect_symbol(";")
-  { name, kind, params, result, docs, external_id: None, }
+  {
+    name,
+    kind,
+    params,
+    result,
+    docs,
+    external_id: None,
+    attributes: Attributes::empty(),
+  }
 }
 
 ///|
@@ -572,6 +606,7 @@ fn Parser::parse_constructor(
     result,
     docs,
     external_id: None,
+    attributes: Attributes::empty(),
   }
 }
 
@@ -599,7 +634,15 @@ fn Parser::parse_resource_function(
   }
   self.validate_accessor_signature(kind, params, result)
   self.expect_symbol(";")
-  { name, kind, params, result, docs, external_id: None, }
+  {
+    name,
+    kind,
+    params,
+    result,
+    docs,
+    external_id: None,
+    attributes: Attributes::empty(),
+  }
 }
 
 ///|
@@ -610,31 +653,46 @@ fn Parser::parse_resource(
 ) -> TypeDef raise ParseError {
   // Bare resource declaration: `resource foo;`
   if self.match_symbol(";") {
-    return { name, kind: Resource({ funcs: [], }), docs, external_id: None, }
+    return {
+      name,
+      kind: Resource({ funcs: [], }),
+      docs,
+      external_id: None,
+      attributes: Attributes::empty(),
+    }
   }
   self.expect_symbol("{")
   let funcs : Array[Function] = []
   while true {
     let docs_before = self.take_docs()
-    let external_id = self.parse_annotations()
+    let (attributes, external_id) = self.parse_annotations()
     let func_docs = merge_docs(docs_before, self.take_docs())
     if self.match_symbol("}") {
+      if !attributes.is_empty() || external_id is Some(_) {
+        raise self.error("annotation requires an item")
+      }
       break
     }
     if self.match_keyword("constructor") {
       let func = self.parse_constructor(name, func_docs)
-      funcs.push({ ..func, external_id, })
+      funcs.push({ ..func, external_id, attributes, })
       continue
     }
     if self.match_keyword("static") {
       let func = self.parse_function(Static(name), func_docs)
-      funcs.push({ ..func, external_id, })
+      funcs.push({ ..func, external_id, attributes, })
       continue
     }
     let func = self.parse_resource_function(name, func_docs)
-    funcs.push({ ..func, external_id, })
+    funcs.push({ ..func, external_id, attributes, })
   }
-  { name, kind: Resource({ funcs, }), docs, external_id: None, }
+  {
+    name,
+    kind: Resource({ funcs, }),
+    docs,
+    external_id: None,
+    attributes: Attributes::empty(),
+  }
 }
 
 ///|
@@ -659,7 +717,13 @@ fn Parser::parse_record(
     self.expect_symbol("}")
     break
   }
-  { name, kind: Record(fields), docs, external_id: None, }
+  {
+    name,
+    kind: Record(fields),
+    docs,
+    external_id: None,
+    attributes: Attributes::empty(),
+  }
 }
 
 ///|
@@ -682,7 +746,13 @@ fn Parser::parse_enum(
     self.expect_symbol("}")
     break
   }
-  { name, kind: Enum(cases), docs, external_id: None, }
+  {
+    name,
+    kind: Enum(cases),
+    docs,
+    external_id: None,
+    attributes: Attributes::empty(),
+  }
 }
 
 ///|
@@ -705,7 +775,13 @@ fn Parser::parse_flags(
     self.expect_symbol("}")
     break
   }
-  { name, kind: Flags(cases), docs, external_id: None, }
+  {
+    name,
+    kind: Flags(cases),
+    docs,
+    external_id: None,
+    attributes: Attributes::empty(),
+  }
 }
 
 ///|
@@ -734,7 +810,13 @@ fn Parser::parse_variant(
     self.expect_symbol("}")
     break
   }
-  { name, kind: Variant(cases), docs, external_id: None, }
+  {
+    name,
+    kind: Variant(cases),
+    docs,
+    external_id: None,
+    attributes: Attributes::empty(),
+  }
 }
 
 ///|
@@ -746,7 +828,13 @@ fn Parser::parse_type_alias(
   self.expect_symbol("=")
   let ty = self.parse_type_expr()
   self.expect_symbol(";")
-  { name, kind: Alias(ty), docs, external_id: None, }
+  {
+    name,
+    kind: Alias(ty),
+    docs,
+    external_id: None,
+    attributes: Attributes::empty(),
+  }
 }
 
 ///|
@@ -772,7 +860,7 @@ fn Parser::parse_use_decl(self : Parser) -> UseDecl raise ParseError {
     break
   }
   self.expect_symbol(";")
-  { from, names, renames, }
+  { from, names, renames, attributes: Attributes::empty(), }
 }
 
 ///|
@@ -794,7 +882,7 @@ fn Parser::parse_include_item(self : Parser) -> IncludeDecl raise ParseError {
     }
   }
   self.expect_symbol(";")
-  { path, renames, }
+  { path, renames, attributes: Attributes::empty(), }
 }
 
 ///|
@@ -804,7 +892,7 @@ fn Parser::parse_interface(
 ) -> Interface raise ParseError {
   let name = self.expect_ident()
   let items = self.parse_interface_items()
-  { name, docs, items, }
+  { name, docs, items, attributes: Attributes::empty(), }
 }
 
 ///|
@@ -815,55 +903,58 @@ fn Parser::parse_interface_items(
   let items : Array[InterfaceItem] = []
   while true {
     let docs_before = self.take_docs()
-    let external_id = self.parse_annotations()
+    let (attributes, external_id) = self.parse_annotations()
     let docs_after = self.take_docs()
     let item_docs = merge_docs(docs_before, docs_after)
     if self.match_symbol("}") {
+      if !attributes.is_empty() || external_id is Some(_) {
+        raise self.error("annotation requires an item")
+      }
       break
     }
     if self.match_keyword("use") {
       let decl = self.parse_use_decl()
-      items.push(annotate_interface_item(Use(decl), external_id))
+      items.push(annotate_interface_item(Use(decl), attributes, external_id))
       continue
     }
     if self.match_keyword("record") {
       let type_name = self.expect_ident()
       let def = self.parse_record(type_name, item_docs)
-      items.push(annotate_interface_item(TypeDef(def), external_id))
+      items.push(annotate_interface_item(TypeDef(def), attributes, external_id))
       continue
     }
     if self.match_keyword("enum") {
       let type_name = self.expect_ident()
       let def = self.parse_enum(type_name, item_docs)
-      items.push(annotate_interface_item(TypeDef(def), external_id))
+      items.push(annotate_interface_item(TypeDef(def), attributes, external_id))
       continue
     }
     if self.match_keyword("flags") {
       let type_name = self.expect_ident()
       let def = self.parse_flags(type_name, item_docs)
-      items.push(annotate_interface_item(TypeDef(def), external_id))
+      items.push(annotate_interface_item(TypeDef(def), attributes, external_id))
       continue
     }
     if self.match_keyword("variant") {
       let type_name = self.expect_ident()
       let def = self.parse_variant(type_name, item_docs)
-      items.push(annotate_interface_item(TypeDef(def), external_id))
+      items.push(annotate_interface_item(TypeDef(def), attributes, external_id))
       continue
     }
     if self.match_keyword("resource") {
       let type_name = self.expect_ident()
       let def = self.parse_resource(type_name, item_docs)
-      items.push(annotate_interface_item(TypeDef(def), external_id))
+      items.push(annotate_interface_item(TypeDef(def), attributes, external_id))
       continue
     }
     if self.match_keyword("type") {
       let type_name = self.expect_ident()
       let def = self.parse_type_alias(type_name, item_docs)
-      items.push(annotate_interface_item(TypeDef(def), external_id))
+      items.push(annotate_interface_item(TypeDef(def), attributes, external_id))
       continue
     }
     let func = self.parse_function(Freestanding, item_docs)
-    items.push(annotate_interface_item(Function(func), external_id))
+    items.push(annotate_interface_item(Function(func), attributes, external_id))
   }
   items
 }
@@ -877,61 +968,70 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
   let exports : Array[WorldItem] = []
   while true {
     let docs_before = self.take_docs()
-    let external_id = self.parse_annotations()
+    let (attributes, external_id) = self.parse_annotations()
     let docs_after = self.take_docs()
     let item_docs = merge_docs(docs_before, docs_after)
     if self.match_symbol("}") {
+      if !attributes.is_empty() || external_id is Some(_) {
+        raise self.error("annotation requires an item")
+      }
       break
     }
     if self.match_keyword("record") {
       let type_name = self.expect_ident()
       let def = self.parse_record(type_name, item_docs)
-      types.push({ ..def, external_id, })
+      types.push({ ..def, external_id, attributes, })
       continue
     }
     if self.match_keyword("enum") {
       let type_name = self.expect_ident()
       let def = self.parse_enum(type_name, item_docs)
-      types.push({ ..def, external_id, })
+      types.push({ ..def, external_id, attributes, })
       continue
     }
     if self.match_keyword("flags") {
       let type_name = self.expect_ident()
       let def = self.parse_flags(type_name, item_docs)
-      types.push({ ..def, external_id, })
+      types.push({ ..def, external_id, attributes, })
       continue
     }
     if self.match_keyword("variant") {
       let type_name = self.expect_ident()
       let def = self.parse_variant(type_name, item_docs)
-      types.push({ ..def, external_id, })
+      types.push({ ..def, external_id, attributes, })
       continue
     }
     if self.match_keyword("resource") {
       let type_name = self.expect_ident()
       let def = self.parse_resource(type_name, item_docs)
-      types.push({ ..def, external_id, })
+      types.push({ ..def, external_id, attributes, })
       continue
     }
     if self.match_keyword("type") {
       let type_name = self.expect_ident()
       let def = self.parse_type_alias(type_name, item_docs)
-      types.push({ ..def, external_id, })
+      types.push({ ..def, external_id, attributes, })
       continue
     }
     if self.match_keyword("use") {
-      imports.push(annotate_world_item(Use(self.parse_use_decl()), external_id))
+      imports.push(
+        annotate_world_item(Use(self.parse_use_decl()), attributes, external_id),
+      )
       continue
     }
     if self.match_keyword("include") {
       let include_decl = self.parse_include_item()
-      imports.push(annotate_world_item(Include(include_decl), external_id))
+      imports.push(
+        annotate_world_item(Include(include_decl), attributes, external_id),
+      )
       continue
     }
     if self.match_keyword("import") {
       if self.is_world_func_decl() {
         let func = self.parse_function(Freestanding, item_docs)
-        imports.push(annotate_world_item(Function(func), external_id))
+        imports.push(
+          annotate_world_item(Function(func), attributes, external_id),
+        )
       } else if self.is_world_inline_interface_decl() {
         let name = self.expect_ident()
         self.expect_symbol(":")
@@ -940,6 +1040,7 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
         imports.push(
           annotate_world_item(
             InlineInterface({ name, docs: item_docs, items, }),
+            attributes,
             external_id,
           ),
         )
@@ -949,19 +1050,27 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
         let path = self.parse_use_path()
         self.expect_symbol(";")
         imports.push(
-          annotate_world_item(NamedInterface(name, path), external_id),
+          annotate_world_item(
+            NamedInterface(name, path),
+            attributes,
+            external_id,
+          ),
         )
       } else {
         let path = self.parse_use_path()
         self.expect_symbol(";")
-        imports.push(annotate_world_item(Interface(path), external_id))
+        imports.push(
+          annotate_world_item(Interface(path), attributes, external_id),
+        )
       }
       continue
     }
     if self.match_keyword("export") {
       if self.is_world_func_decl() {
         let func = self.parse_function(Freestanding, item_docs)
-        exports.push(annotate_world_item(Function(func), external_id))
+        exports.push(
+          annotate_world_item(Function(func), attributes, external_id),
+        )
       } else if self.is_world_inline_interface_decl() {
         let name = self.expect_ident()
         self.expect_symbol(":")
@@ -970,6 +1079,7 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
         exports.push(
           annotate_world_item(
             InlineInterface({ name, docs: item_docs, items, }),
+            attributes,
             external_id,
           ),
         )
@@ -979,18 +1089,24 @@ fn Parser::parse_world(self : Parser, docs : String?) -> World raise ParseError 
         let path = self.parse_use_path()
         self.expect_symbol(";")
         exports.push(
-          annotate_world_item(NamedInterface(name, path), external_id),
+          annotate_world_item(
+            NamedInterface(name, path),
+            attributes,
+            external_id,
+          ),
         )
       } else {
         let path = self.parse_use_path()
         self.expect_symbol(";")
-        exports.push(annotate_world_item(Interface(path), external_id))
+        exports.push(
+          annotate_world_item(Interface(path), attributes, external_id),
+        )
       }
       continue
     }
     raise self.error("unexpected world item")
   }
-  { name, docs, types, imports, exports, }
+  { name, docs, types, imports, exports, attributes: Attributes::empty(), }
 }
 
 ///|
@@ -1013,26 +1129,42 @@ fn Parser::parse_file(
   let worlds : Array[World] = []
   let packages : Array[WitFile] = []
   let aliases : Map[String, UsePath] = Map([])
+  let uses : Array[TopLevelUse] = []
   while true {
     let docs_before = self.take_docs()
-    if self.parse_annotations() is Some(_) {
+    let (attributes, external_id) = self.parse_annotations()
+    if external_id is Some(_) {
       raise self.error("external-id is not allowed on top-level items")
     }
     let docs_after = self.take_docs()
     let item_docs = merge_docs(docs_before, docs_after)
     if nested && self.match_symbol("}") {
+      if !attributes.is_empty() {
+        raise self.error("annotation requires an item")
+      }
       break
     }
     if self.is_eof() {
+      if !attributes.is_empty() {
+        raise self.error("annotation requires an item")
+      }
       if nested {
         raise self.error("unterminated package")
       }
       break
     }
     if self.match_keyword("package") {
+      if !attributes.is_empty() {
+        raise self.error("attributes are not allowed on packages")
+      }
       let pkg_name = self.parse_package()
       if self.match_symbol(";") {
-        if pkg is Some(_) || nested {
+        if pkg is Some(_) ||
+          nested ||
+          interfaces.length() > 0 ||
+          worlds.length() > 0 ||
+          aliases.length() > 0 ||
+          packages.length() > 0 {
           raise self.error("duplicate package declaration")
         }
         pkg = Some(pkg_name)
@@ -1054,17 +1186,28 @@ fn Parser::parse_file(
         raise self.error("duplicate top-level use: " + name)
       }
       aliases.set(name, path)
+      uses.push({ from: path, name, attributes, })
       continue
     }
     if self.match_keyword("interface") {
-      interfaces.push(self.parse_interface(item_docs))
+      interfaces.push({ ..self.parse_interface(item_docs), attributes, })
       continue
     }
     if self.match_keyword("world") {
-      worlds.push(self.parse_world(item_docs))
+      worlds.push({ ..self.parse_world(item_docs), attributes, })
       continue
     }
     raise self.error("unexpected top-level item")
+  }
+  let names : Map[String, Bool] = Map([])
+  for iface in interfaces {
+    define_source_name(names, iface.name)
+  }
+  for world in worlds {
+    define_source_name(names, world.name)
+  }
+  for name, _ in aliases {
+    define_source_name(names, name)
   }
   let interfaces = interfaces.map(iface => {
     if aliases.contains(iface.name) {
@@ -1082,7 +1225,11 @@ fn Parser::parse_file(
       exports: world.exports.map(item => expand_world_uses(item, aliases)),
     }
   })
-  { pkg, interfaces, worlds, packages, }
+  let uses = uses.map(decl => {
+    ..decl,
+    from: expand_use_path(decl.from, aliases),
+  })
+  { pkg, interfaces, worlds, packages, uses, }
 }
 
 ///|
@@ -1130,6 +1277,8 @@ fn expand_world_uses(
     NamedInterface(name, path) =>
       NamedInterface(name, expand_use_path(path, aliases))
     External(id, item) => External(id, expand_world_uses(item, aliases))
+    Attributed(attributes, item) =>
+      Attributed(attributes, expand_world_uses(item, aliases))
     Include(decl) =>
       Include({ ..decl, path: expand_use_path(decl.path, aliases), })
     Use(decl) => Use({ ..decl, from: expand_use_path(decl.from, aliases), })
@@ -1192,16 +1341,20 @@ fn Parser::is_named_interface_decl(self : Parser) -> Bool {
 ///|
 fn annotate_interface_item(
   item : InterfaceItem,
+  attributes : Attributes,
   external_id : String?,
 ) -> InterfaceItem raise ParseError {
   match item {
-    Function(func) => Function({ ..func, external_id, })
-    TypeDef(def) => TypeDef({ ..def, external_id, })
+    Function(func) => Function({ ..func, external_id, attributes, })
+    TypeDef(def) => TypeDef({ ..def, external_id, attributes, })
     Use(_) => {
       if external_id is Some(_) {
         raise ParseError::Message("external-id is not allowed on use", 0)
       }
-      item
+      match item {
+        Use(decl) => Use({ ..decl, attributes, })
+        _ => item
+      }
     }
   }
 }
@@ -1209,14 +1362,34 @@ fn annotate_interface_item(
 ///|
 fn annotate_world_item(
   item : WorldItem,
+  attributes : Attributes,
   external_id : String?,
 ) -> WorldItem raise ParseError {
-  match (item, external_id) {
-    (Function(func), _) => Function({ ..func, external_id, })
-    (Use(_) | Include(_), Some(_)) =>
-      raise ParseError::Message("external-id is not allowed on use/include", 0)
-    (_, Some(id)) => External(id, item)
-    (_, None) => item
+  match item {
+    Function(func) => Function({ ..func, attributes, external_id, })
+    Use(decl) => {
+      if external_id is Some(_) {
+        raise ParseError::Message("external-id is not allowed on use", 0)
+      }
+      Use({ ..decl, attributes, })
+    }
+    Include(decl) => {
+      if external_id is Some(_) {
+        raise ParseError::Message("external-id is not allowed on include", 0)
+      }
+      Include({ ..decl, attributes, })
+    }
+    _ => {
+      let item = match external_id {
+        Some(id) => External(id, item)
+        None => item
+      }
+      if attributes.is_empty() {
+        item
+      } else {
+        Attributed(attributes, item)
+      }
+    }
   }
 }
 

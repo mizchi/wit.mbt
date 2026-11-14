@@ -113,8 +113,9 @@ pub fn interface_infos(resolve : Resolve) -> Array[ResolvedInterfaceInfo] {
 #warnings("-78")
 pub fn resolve_interface_infos(
   source : String,
+  options~ : ResolveOptions = ResolveOptions::new(),
 ) -> Result[Array[ResolvedInterfaceInfo], ParseError] {
-  match resolve(source) {
+  match resolve(source, options~) {
     Ok(resolved) => Ok(interface_infos(resolved))
     Err(err) => Err(err)
   }
@@ -126,10 +127,11 @@ pub fn resolve_interface_infos(
 pub fn resolve_path_interface_infos(
   path : String,
   world? : String,
+  options~ : ResolveOptions = ResolveOptions::new(),
 ) -> Result[Array[ResolvedInterfaceInfo], ParseError] {
   let resolved = match world {
-    Some(name) => resolve_path(path, world=name)
-    None => resolve_path(path)
+    Some(name) => resolve_path(path, world=name, options~)
+    None => resolve_path(path, options~)
   }
   match resolved {
     Ok(input) => Ok(interface_infos(input.resolve))

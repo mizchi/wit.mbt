@@ -2,6 +2,7 @@
 #derive(Eq, Debug)
 pub enum TokenType {
   Ident(String)
+  ExplicitIdent(String)
   Keyword(String)
   Symbol(String)
   StringLit(String)
@@ -35,7 +36,9 @@ priv struct Lexer {
 
 ///|
 fn Lexer::new(source : String) -> Lexer {
-  { input: source.to_array(), pos: 0, }
+  let input = source.to_array()
+  let pos = if input.length() > 0 && input[0] == '\u{feff}' { 1 } else { 0 }
+  { input, pos, }
 }
 
 ///|
@@ -198,52 +201,82 @@ fn Lexer::read_line_comment(self : Lexer) -> String {
 ///|
 fn Lexer::read_string(self : Lexer) -> String raise ParseError {
   let start = self.pos
-  let _ = self.advance()
-  let buf = StringBuilder()
+  ignore(self.advance())
+  let buf : Array[Byte] = []
   while true {
-    match self.peek_char() {
+    match self.advance() {
       None => raise ParseError::Message("unterminated string", start)
-      Some('"') => {
-        let _ = self.advance()
-        break
-      }
+      Some('"') => break
       Some('\\') => {
-        let _ = self.advance()
-        match self.peek_char() {
-          Some('n') => {
-            let _ = self.advance()
-            buf.write_char('\n')
-          }
-          Some('t') => {
-            let _ = self.advance()
-            buf.write_char('\t')
-          }
-          Some('r') => {
-            let _ = self.advance()
-            buf.write_char('\r')
-          }
-          Some('"') => {
-            let _ = self.advance()
-            buf.write_char('"')
-          }
-          Some('\\') => {
-            let _ = self.advance()
-            buf.write_char('\\')
-          }
-          Some(other) => {
-            let _ = self.advance()
-            buf.write_char(other)
-          }
+        let ch = match self.advance() {
+          Some(ch) => ch
           None => raise ParseError::Message("unterminated escape", start)
         }
+        match ch {
+          'n' => buf.push(b'\n')
+          't' => buf.push(b'\t')
+          'r' => buf.push(b'\r')
+          '"' => buf.push(b'"')
+          '\'' => buf.push(b'\'')
+          '\\' => buf.push(b'\\')
+          'u' => {
+            if self.advance() != Some('{') {
+              raise ParseError::Message(
+                "expected '{' in unicode escape",
+                self.pos,
+              )
+            }
+            let mut value = self.read_hex_digit()
+            let mut trailing_separator = false
+            while self.peek_char() != Some('}') {
+              if self.peek_char() == Some('_') {
+                ignore(self.advance())
+                trailing_separator = true
+              } else {
+                let digit = self.read_hex_digit()
+                if value > (0x10ffff - digit) / 16 {
+                  raise ParseError::Message("invalid unicode scalar", self.pos)
+                }
+                value = value * 16 + digit
+                trailing_separator = false
+              }
+            }
+            if trailing_separator {
+              raise ParseError::Message(
+                "trailing underscore in unicode escape",
+                self.pos,
+              )
+            }
+            ignore(self.advance())
+            let scalar = match value.to_char() {
+              Some(ch) => ch
+              None =>
+                raise ParseError::Message("invalid unicode scalar", self.pos)
+            }
+            append_utf8_char(buf, scalar)
+          }
+          _ => {
+            let first = match hex_digit(ch) {
+              Some(n) => n
+              None =>
+                raise ParseError::Message("invalid string escape", self.pos - 1)
+            }
+            let second = self.read_hex_digit()
+            buf.push((first * 16 + second).to_byte())
+          }
+        }
       }
-      Some(c) => {
-        let _ = self.advance()
-        buf.write_char(c)
+      Some(ch) => {
+        if ch.to_int() < 0x20 || ch.to_int() == 0x7f {
+          raise ParseError::Message("control character in string", self.pos - 1)
+        }
+        append_utf8_char(buf, ch)
       }
     }
   }
-  buf.to_string()
+  @utf8.decode(Bytes::from_array(buf)[:], ignore_bom=false) catch {
+    _ => raise ParseError::Message("invalid UTF-8 string", start)
+  }
 }
 
 ///|
@@ -270,13 +303,16 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
           tokens.push({ token_type: Doc(text), offset, })
         }
       }
-      Some('/') if lexer.peek_next() == Some('*') => lexer.skip_block_comment()
+      Some('/') if lexer.peek_next() == Some('*') =>
+        if lexer.read_block_comment() is Some(contents) {
+          tokens.push({ token_type: Doc(contents), offset, })
+        }
       Some('%') => {
         let _ = lexer.advance()
         match lexer.peek_char() {
           Some(c) if is_ident_start(c) => {
             let ident = lexer.read_ident()
-            tokens.push({ token_type: Ident(ident), offset, })
+            tokens.push({ token_type: ExplicitIdent(ident), offset, })
           }
           _ => raise ParseError::Message("expected identifier after %", offset)
         }
@@ -366,10 +402,12 @@ pub extend Token with Debug::{to_repr}
 pub extend Token with Show::{to_string, output}
 
 ///|
-fn Lexer::skip_block_comment(self : Lexer) -> Unit raise ParseError {
+fn Lexer::read_block_comment(self : Lexer) -> String? raise ParseError {
   let offset = self.pos
   ignore(self.advance())
   ignore(self.advance())
+  let is_doc = self.peek_char() == Some('*')
+  let contents = StringBuilder()
   let mut depth = 1
   while depth > 0 {
     match (self.peek_char(), self.peek_next()) {
@@ -379,13 +417,69 @@ fn Lexer::skip_block_comment(self : Lexer) -> Unit raise ParseError {
         ignore(self.advance())
         ignore(self.advance())
         depth += 1
+        contents.write_string("/*")
       }
       (Some('*'), Some('/')) => {
         ignore(self.advance())
         ignore(self.advance())
         depth -= 1
+        if depth > 0 {
+          contents.write_string("*/")
+        }
       }
-      _ => ignore(self.advance())
+      (Some(ch), _) => {
+        ignore(self.advance())
+        contents.write_char(ch)
+      }
     }
+  }
+  if !is_doc {
+    return None
+  }
+  let text = contents.to_string()
+  let text = if text.has_prefix("*") { text[1:].to_owned() } else { text }
+  let lines = text
+    .split("\n")
+    .map(line => {
+      let line = line.trim()
+      if line.has_prefix("*") {
+        line[1:].trim().to_owned()
+      } else {
+        line.to_owned()
+      }
+    })
+    .to_array()
+  Some(join_docs(lines).trim().to_owned())
+}
+
+///|
+fn hex_digit(ch : Char) -> Int32? {
+  if ch >= '0' && ch <= '9' {
+    Some(ch.to_int() - '0'.to_int())
+  } else if ch >= 'a' && ch <= 'f' {
+    Some(ch.to_int() - 'a'.to_int() + 10)
+  } else if ch >= 'A' && ch <= 'F' {
+    Some(ch.to_int() - 'A'.to_int() + 10)
+  } else {
+    None
+  }
+}
+
+///|
+fn Lexer::read_hex_digit(self : Lexer) -> Int32 raise ParseError {
+  match self.advance() {
+    Some(ch) =>
+      match hex_digit(ch) {
+        Some(n) => n
+        None => raise ParseError::Message("invalid hex digit", self.pos - 1)
+      }
+    None => raise ParseError::Message("unterminated hex escape", self.pos)
+  }
+}
+
+///|
+fn append_utf8_char(buf : Array[Byte], ch : Char) -> Unit {
+  for byte in @utf8.encode(ch.to_string()[:]) {
+    buf.push(byte)
   }
 }

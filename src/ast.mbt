@@ -18,6 +18,7 @@ pub struct WitFile {
   interfaces : Array[Interface]
   worlds : Array[World]
   packages : Array[WitFile]
+  uses : Array[TopLevelUse]
 }
 
 ///|
@@ -31,6 +32,7 @@ pub struct Interface {
   name : String
   docs : String?
   items : Array[InterfaceItem]
+  attributes : Attributes
 }
 
 ///|
@@ -57,6 +59,7 @@ pub struct UseDecl {
   from : UsePath
   names : Array[String]
   renames : Array[IncludeRename]
+  attributes : Attributes
 }
 
 ///|
@@ -71,6 +74,7 @@ pub struct TypeDef {
   kind : TypeDefKind
   docs : String?
   external_id : String?
+  attributes : Attributes
 }
 
 ///|
@@ -138,6 +142,7 @@ pub struct Function {
   result : TypeExpr?
   docs : String?
   external_id : String?
+  attributes : Attributes
 }
 
 ///|
@@ -223,6 +228,7 @@ pub struct World {
   types : Array[TypeDef]
   imports : Array[WorldItem]
   exports : Array[WorldItem]
+  attributes : Attributes
 }
 
 ///|
@@ -236,6 +242,7 @@ pub enum WorldItem {
   Interface(UsePath)
   NamedInterface(String, UsePath)
   External(String, WorldItem)
+  Attributed(Attributes, WorldItem)
   Function(Function)
   InlineInterface(InlineInterface)
   Include(IncludeDecl)
@@ -277,6 +284,7 @@ pub impl Show for UsePath with fn to_string(self) {
 pub struct IncludeDecl {
   path : UsePath
   renames : Array[IncludeRename]
+  attributes : Attributes
 }
 
 ///|

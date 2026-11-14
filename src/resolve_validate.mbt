@@ -12,6 +12,7 @@ fn type_children(kind : RTypeKind) -> Array[RType] {
     Map(k, v) => [k, v]
     Result(ok~, err~) => [ok, err].filter_map(t => t)
     Tuple(ts) => ts
+    Handle(Own(id) | Borrow(id)) => [Id(id)]
     _ => []
   }
 }
@@ -79,6 +80,14 @@ fn validate_resolved_types(types : Array[RTypeDef]) -> Unit raise ParseError {
     validate_type_cycle(types, states, id)
   }
   for def in types {
+    if def.kind is Handle(handle) {
+      let id = match handle {
+        Own(id) | Borrow(id) => id
+      }
+      if !is_resource_target(types, id) {
+        raise ParseError::Message("handle target must be a resource", 0)
+      }
+    }
     if def.kind is Map(key, value) {
       if !map_key_allowed(types, key) {
         raise ParseError::Message("invalid map key type", 0)
@@ -198,4 +207,46 @@ fn validate_constructor_result(
   raise ParseError::Message(
     "constructor result must have its own resource as the ok payload", 0,
   )
+}
+
+///|
+fn is_resource_target(types : Array[RTypeDef], id : Int32) -> Bool {
+  resource_identity(types, id) is Some(_)
+}
+
+///|
+fn contains_borrow(
+  types : Array[RTypeDef],
+  ty : RType,
+  seen : Array[Bool],
+) -> Bool {
+  match ty {
+    Id(id) => {
+      if seen[id] {
+        return false
+      }
+      seen[id] = true
+      match types[id].kind {
+        Handle(Borrow(_)) => true
+        kind => type_children(kind).any(ty => contains_borrow(types, ty, seen))
+      }
+    }
+    _ => false
+  }
+}
+
+///|
+fn validate_function_results(
+  functions : Map[String, RFunction],
+  types : Array[RTypeDef],
+) -> Unit raise ParseError {
+  for _, func in functions {
+    if func.result is Some(ty) &&
+      contains_borrow(types, ty, Array::make(types.length(), false)) {
+      raise ParseError::Message(
+        "function result cannot contain borrow: " + func.name,
+        0,
+      )
+    }
+  }
 }

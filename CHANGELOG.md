@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.1
+
+- Complete transitive world imports for exported interfaces, inline interfaces, and world-level type imports.
+- Resolve arbitrarily ordered chains of interface type re-exports and reject interface dependency cycles and unused unresolved top-level aliases.
+- Reject duplicate and case-insensitively conflicting definitions, parameters, fields, enum cases, and included world items; reject empty compound type definitions and duplicate constructors.
+- Validate resource targets and borrowed return values, preserve resource aliases as aliases, and apply ownership at value sites after forward references have resolved.
+- Decode Core WebAssembly string escapes, including Unicode scalars and UTF-8 byte escapes; reject invalid escapes, invalid UTF-8, raw control characters, and invalid scalars.
+- Accept an initial UTF-8 BOM and retain block documentation comments.
+- Retain stability annotations in the AST, resolved model, and JSON. Validate annotation syntax, conflicting gates, package-version bounds, and deprecation ordering.
+- Add `ResolveOptions::new(features?, all_features?, target_version?)` to string, multi-AST, path, and interface-info resolution. Unstable APIs require explicit opt-in; target-version filtering excludes later APIs.
+- Add CLI options `--features`, `--all-features`, and `--target-version`, and select the default world after filtering.
+- Extend `spec-check` to compare world dependency graphs and metadata, exercise invalid inputs on JS/native, and optionally use a reproducible pinned upstream oracle.
+
+### API changes
+
+- Gate-bearing AST and resolved structures gain `attributes : Attributes`.
+- `WorldItem::Attributed` retains annotations on interface imports and exports.
+- `WitFile.uses` retains typed `TopLevelUse` entries, including unused bindings.
+- Percent-escaped identifiers retain `TokenType::ExplicitIdent` identity.
+- Resolution defaults to excluding unstable definitions; use `ResolveOptions::new(all_features=true)` to opt into all of them.
+
 ## 0.4.0
 
 - Add payloadless `future` and `stream`, `error-context`, fixed-length lists, and maps.

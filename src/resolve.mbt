@@ -99,6 +99,8 @@ priv struct InterfaceBuilder {
   pkg : Int32?
   types : Map[String, Int32]
   functions : Map[String, RFunction]
+  uses : Array[Int32]
+  attributes : Attributes
 }
 
 ///|
@@ -181,6 +183,8 @@ fn Resolver::ensure_interface(
         pkg: pkg_id,
         types: {},
         functions: {},
+        uses: [],
+        attributes: Attributes::empty(),
       }
       self.iface_builders.push(builder)
       self.iface_ids.set(key, id)
@@ -209,6 +213,8 @@ fn Resolver::new_inline_interface(
     pkg: pkg_id,
     types: {},
     functions: {},
+    uses: [],
+    attributes: Attributes::empty(),
   }
   self.iface_builders.push(builder)
   id
@@ -238,6 +244,7 @@ fn Resolver::intern_type(self : Resolver, kind : RTypeKind) -> Int32 {
         owner: RTypeOwner::None,
         docs: None,
         external_id: None,
+        attributes: Attributes::empty(),
       })
       self.anon_type_ids.set(key, id)
       id
@@ -270,6 +277,7 @@ fn Resolver::set_type_kind(
     owner: current.owner,
     docs: current.docs,
     external_id: current.external_id,
+    attributes: current.attributes,
   }
 }
 
@@ -403,6 +411,7 @@ fn Resolver::resolve_function(
     result,
     docs: func.docs,
     external_id: func.external_id,
+    attributes: func.attributes,
   }
 }
 
@@ -458,6 +467,14 @@ fn merge_included_world_items(
         continue
       }
       raise ParseError::Message("duplicate world item: " + merged_name, 0)
+    }
+    if target.keys().any(name => name.to_lower() == merged_name.to_lower()) {
+      raise ParseError::Message("duplicate world item: " + merged_name, 0)
+    }
+    let item = match item {
+      RWorldItem::Function(func) =>
+        RWorldItem::Function({ ..func, name: merged_name, })
+      _ => item
     }
     target.set(merged_name, item)
   }
@@ -644,6 +661,7 @@ fn Resolver::resolve_world_function(
     result,
     docs: func.docs,
     external_id: func.external_id,
+    attributes: func.attributes,
   }
 }
 
@@ -675,6 +693,8 @@ fn Resolver::register_interface_items(
         pkg: builder.pkg,
         types: builder.types,
         functions: builder.functions,
+        uses: builder.uses,
+        attributes: builder.attributes,
       }
     None => ()
   }
@@ -692,6 +712,7 @@ fn Resolver::register_interface_items(
           owner: RTypeOwner::Interface(iface_id),
           docs: def.docs,
           external_id: def.external_id,
+          attributes: def.attributes,
         }
         let type_id = self.push_type(placeholder)
         builder.types.set(def.name, type_id)
@@ -751,6 +772,9 @@ fn Resolver::apply_use_decls_items(
           builder.pkg,
           decl.from,
         )
+        if !builder.uses.contains(target_id) {
+          builder.uses.push(target_id)
+        }
         let target = self.iface_builders[target_id]
         for name in decl.names {
           match target.types.get(name) {
@@ -789,6 +813,9 @@ fn Resolver::apply_use_decls(
             builder.pkg,
             decl.from,
           )
+          if !builder.uses.contains(target_id) {
+            builder.uses.push(target_id)
+          }
           let target = self.iface_builders[target_id]
           for name in decl.names {
             match target.types.get(name) {
@@ -820,6 +847,7 @@ fn Resolver::fill_interface(
   iface : Interface,
 ) -> Unit raise ParseError {
   let builder = self.iface_builders[iface_id]
+  self.iface_builders[iface_id] = { ..builder, attributes: iface.attributes, }
   for item in iface.items {
     match item {
       TypeDef(def) => {
@@ -850,7 +878,17 @@ fn Resolver::fill_interface(
             RTypeKind::Variant(resolved)
           }
           Alias(target) => {
-            let ty = self.resolve_type_expr(iface_id, target)
+            let ty = match target {
+              TypeExpr::Id(name) =>
+                RType::Id(
+                  match self.iface_builders[iface_id].types.get(name) {
+                    Some(id) => id
+                    None =>
+                      raise ParseError::Message("unknown type: " + name, 0)
+                  },
+                )
+              _ => self.resolve_type_expr(iface_id, target)
+            }
             RTypeKind::Alias(ty)
           }
           Resource(res) => {
@@ -894,6 +932,7 @@ fn Resolver::fill_interface(
                     result,
                     docs: func.docs,
                     external_id: func.external_id,
+                    attributes: func.attributes,
                   }
                   builder.functions.set(resolved.name, resolved)
                 }
@@ -924,6 +963,7 @@ fn Resolver::fill_interface(
                     result,
                     docs: func.docs,
                     external_id: func.external_id,
+                    attributes: func.attributes,
                   }
                   builder.functions.set(resolved.name, resolved)
                 }
@@ -952,6 +992,7 @@ fn Resolver::fill_interface(
                     result,
                     docs: func.docs,
                     external_id: func.external_id,
+                    attributes: func.attributes,
                   }
                   builder.functions.set(resolved.name, resolved)
                 }
@@ -1023,7 +1064,7 @@ fn Resolver::fill_worlds(
             None => raise ParseError::Message("unknown type: " + name, 0)
           }
           world_types.set(local_name, tid)
-          imports.set(local_name, Type(tid))
+          insert_world_item(imports, local_name, Type(tid))
         }
       }
     }
@@ -1041,10 +1082,11 @@ fn Resolver::fill_worlds(
         owner: RTypeOwner::World(world_id),
         docs: def.docs,
         external_id: def.external_id,
+        attributes: def.attributes,
       }
       let type_id = self.push_type(placeholder)
       world_types.set(def.name, type_id)
-      imports.set(def.name, Type(type_id))
+      insert_world_item(imports, def.name, Type(type_id))
     }
     let world_scope = build_world_type_scope(world_types)
     for def in world.types {
@@ -1075,7 +1117,11 @@ fn Resolver::fill_worlds(
           RTypeKind::Variant(resolved)
         }
         Alias(target) => {
-          let ty = self.resolve_type_expr_world(world_scope, target)
+          let ty = match target {
+            TypeExpr::Id(name) =>
+              RType::Id(resolve_world_type(world_scope, name))
+            _ => self.resolve_type_expr_world(world_scope, target)
+          }
           RTypeKind::Alias(ty)
         }
         Resource(res) => {
@@ -1116,8 +1162,9 @@ fn Resolver::fill_worlds(
                   result,
                   docs: func.docs,
                   external_id: func.external_id,
+                  attributes: func.attributes,
                 }
-                imports.set(resolved.name, Function(resolved))
+                insert_world_item(imports, resolved.name, Function(resolved))
               }
               Method(_) | AsyncMethod(_) | MethodGetter(_) | MethodSetter(_) => {
                 let params : Array[(String, RType)] = []
@@ -1143,8 +1190,9 @@ fn Resolver::fill_worlds(
                   result,
                   docs: func.docs,
                   external_id: func.external_id,
+                  attributes: func.attributes,
                 }
-                imports.set(resolved.name, Function(resolved))
+                insert_world_item(imports, resolved.name, Function(resolved))
               }
               Static(_) | AsyncStatic(_) | StaticGetter(_) | StaticSetter(_) => {
                 let params : Array[(String, RType)] = []
@@ -1168,12 +1216,13 @@ fn Resolver::fill_worlds(
                   result,
                   docs: func.docs,
                   external_id: func.external_id,
+                  attributes: func.attributes,
                 }
-                imports.set(resolved.name, Function(resolved))
+                insert_world_item(imports, resolved.name, Function(resolved))
               }
               Freestanding | AsyncFreestanding | Getter | Setter => {
                 let resolved = self.resolve_world_function(func, world_scope)
-                imports.set(resolved.name, Function(resolved))
+                insert_world_item(imports, resolved.name, Function(resolved))
               }
             }
           }
@@ -1183,12 +1232,9 @@ fn Resolver::fill_worlds(
       self.set_type_kind(type_id, kind)
     }
     for item in world.imports {
-      let (item, external_id) = match item {
-        External(id, item) => (item, Some(id))
-        _ => (item, None)
-      }
+      let (item, attributes, external_id) = world_item_annotations(item)
       match item {
-        External(_, _) =>
+        External(_, _) | Attributed(_, _) =>
           raise ParseError::Message("nested external-id annotation", 0)
         Use(_) => ()
         WorldItem::Include(include_decl) => {
@@ -1212,7 +1258,11 @@ fn Resolver::fill_worlds(
           if imports.contains(name) {
             raise ParseError::Message("duplicate world item: " + name, 0)
           }
-          imports.set(name, Interface({ id: iface_id, external_id, }))
+          insert_world_item(
+            imports,
+            name,
+            Interface({ id: iface_id, external_id, attributes, }),
+          )
         }
         WorldItem::Interface(path) => {
           let iface_id = match path.pkg {
@@ -1233,7 +1283,11 @@ fn Resolver::fill_worlds(
             }
           }
           let key = "interface-" + iface_id.to_string()
-          imports.set(key, Interface({ id: iface_id, external_id, }))
+          insert_world_item(
+            imports,
+            key,
+            Interface({ id: iface_id, external_id, attributes, }),
+          )
         }
         WorldItem::InlineInterface(inline) => {
           let iface_id = self.new_inline_interface(pkg_id, inline.docs)
@@ -1243,23 +1297,25 @@ fn Resolver::fill_worlds(
             name: inline.name,
             docs: inline.docs,
             items: inline.items,
+            attributes,
           }
           self.fill_interface(iface_id, iface_ast)
-          imports.set(inline.name, Interface({ id: iface_id, external_id, }))
+          insert_world_item(
+            imports,
+            inline.name,
+            Interface({ id: iface_id, external_id, attributes, }),
+          )
         }
         WorldItem::Function(func) => {
           let resolved = self.resolve_world_function(func, world_scope)
-          imports.set(resolved.name, Function(resolved))
+          insert_world_item(imports, resolved.name, Function(resolved))
         }
       }
     }
     for item in world.exports {
-      let (item, external_id) = match item {
-        External(id, item) => (item, Some(id))
-        _ => (item, None)
-      }
+      let (item, attributes, external_id) = world_item_annotations(item)
       match item {
-        External(_, _) =>
+        External(_, _) | Attributed(_, _) =>
           raise ParseError::Message("nested external-id annotation", 0)
         Use(_) => ()
         WorldItem::NamedInterface(name, path) => {
@@ -1267,7 +1323,11 @@ fn Resolver::fill_worlds(
           if exports.contains(name) {
             raise ParseError::Message("duplicate world item: " + name, 0)
           }
-          exports.set(name, Interface({ id: iface_id, external_id, }))
+          insert_world_item(
+            exports,
+            name,
+            Interface({ id: iface_id, external_id, attributes, }),
+          )
         }
         WorldItem::Interface(path) => {
           let iface_id = match path.pkg {
@@ -1288,7 +1348,11 @@ fn Resolver::fill_worlds(
             }
           }
           let key = "interface-" + iface_id.to_string()
-          exports.set(key, Interface({ id: iface_id, external_id, }))
+          insert_world_item(
+            exports,
+            key,
+            Interface({ id: iface_id, external_id, attributes, }),
+          )
         }
         WorldItem::InlineInterface(inline) => {
           let iface_id = self.new_inline_interface(pkg_id, inline.docs)
@@ -1298,13 +1362,18 @@ fn Resolver::fill_worlds(
             name: inline.name,
             docs: inline.docs,
             items: inline.items,
+            attributes,
           }
           self.fill_interface(iface_id, iface_ast)
-          exports.set(inline.name, Interface({ id: iface_id, external_id, }))
+          insert_world_item(
+            exports,
+            inline.name,
+            Interface({ id: iface_id, external_id, attributes, }),
+          )
         }
         WorldItem::Function(func) => {
           let resolved = self.resolve_world_function(func, world_scope)
-          exports.set(resolved.name, Function(resolved))
+          insert_world_item(exports, resolved.name, Function(resolved))
         }
         WorldItem::Include(_) =>
           raise ParseError::Message("include is not allowed in exports list", 0)
@@ -1313,6 +1382,7 @@ fn Resolver::fill_worlds(
     let world_def : RWorld = {
       name: world.name,
       docs: world.docs,
+      attributes: world.attributes,
       imports,
       exports,
       pkg: pkg_id,
@@ -1338,16 +1408,34 @@ fn build_interfaces(builders : Array[InterfaceBuilder]) -> Array[RInterface] {
       functions: builder.functions,
       types: builder.types,
       pkg: builder.pkg,
+      attributes: builder.attributes,
     })
   }
   result
 }
 
 ///|
-fn resolve_asts(input_asts : Array[WitFile]) -> Resolve raise ParseError {
+fn resolve_asts(
+  input_asts : Array[WitFile],
+  options : ResolveOptions,
+) -> Resolve raise ParseError {
+  for feature in options.features {
+    if !valid_wit_identifier(feature) {
+      raise ParseError::Message("invalid feature name: " + feature, 0)
+    }
+  }
+  if options.target_version is Some(version) && !valid_semver(version) {
+    raise ParseError::Message("invalid target version", 0)
+  }
+  let source_asts : Array[WitFile] = []
+  for ast in input_asts {
+    flatten_packages(ast, source_asts)
+  }
+  validate_source_asts(source_asts)
+  validate_toplevel_uses(source_asts)
   let asts : Array[WitFile] = []
   for ast in input_asts {
-    flatten_packages(ast, asts)
+    flatten_packages(prepare_ast(ast, options), asts)
   }
   let resolver = Resolver::new()
   let pkg_ids : Array[Int32?] = []
@@ -1362,7 +1450,7 @@ fn resolve_asts(input_asts : Array[WitFile]) -> Resolve raise ParseError {
   // Iteratively resolve use declarations until all are resolved.
   // Use declarations may depend on other use declarations across packages,
   // so we retry until convergence (no more unresolved types).
-  let max_iterations = asts.length() + 1
+  let max_iterations = resolver.iface_builders.length() + 1
   for round in 0..<max_iterations {
     let mut total_unresolved = 0
     let strict = round == max_iterations - 1
@@ -1390,11 +1478,15 @@ fn resolve_asts(input_asts : Array[WitFile]) -> Resolve raise ParseError {
   for i in 0..<pending.length() {
     resolver.fill_world_in_order(pending, states, i)
   }
+  resolver.normalize_resource_values()
+  resolver.validate_interface_cycles()
+  resolver.complete_world_dependencies()
   validate_resolved_types(resolver.types)
   for (resource, result) in resolver.constructor_results {
     validate_constructor_result(resolver.types, resource, result)
   }
   for builder in resolver.iface_builders {
+    validate_function_results(builder.functions, resolver.types)
     validate_accessor_pairs(builder.functions, resolver.types)
   }
   for world in resolver.worlds {
@@ -1405,6 +1497,7 @@ fn resolve_asts(input_asts : Array[WitFile]) -> Resolve raise ParseError {
           functions.set(name, func)
         }
       }
+      validate_function_results(functions, resolver.types)
       validate_accessor_pairs(functions, resolver.types)
     }
   }
@@ -1418,14 +1511,20 @@ fn resolve_asts(input_asts : Array[WitFile]) -> Resolve raise ParseError {
 }
 
 ///|
-fn resolve_ast(ast : WitFile) -> Resolve raise ParseError {
-  resolve_asts([ast])
+fn resolve_ast(
+  ast : WitFile,
+  options : ResolveOptions,
+) -> Resolve raise ParseError {
+  resolve_asts([ast], options)
 }
 
 ///|
-fn resolve_wit(source : String) -> Resolve raise ParseError {
+fn resolve_wit(
+  source : String,
+  options : ResolveOptions,
+) -> Resolve raise ParseError {
   let ast = parse_wit(source)
-  resolve_ast(ast)
+  resolve_ast(ast, options)
 }
 
 ///|
@@ -1498,4 +1597,19 @@ fn resolved_function_kind(
     StaticGetter(_) => RFunctionKind::StaticGetter(resource)
     StaticSetter(_) => RFunctionKind::StaticSetter(resource)
   }
+}
+
+///|
+fn insert_world_item(
+  items : Map[String, RWorldItem],
+  name : String,
+  item : RWorldItem,
+) -> Unit raise ParseError {
+  if name.has_prefix("interface-") && items.get(name) == Some(item) {
+    return
+  }
+  if items.keys().any(existing => existing.to_lower() == name.to_lower()) {
+    raise ParseError::Message("duplicate world item: " + name, 0)
+  }
+  items.set(name, item)
 }

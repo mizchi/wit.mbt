@@ -92,7 +92,13 @@ fn merge_wit_files(
   for world in next.worlds {
     worlds.push(world)
   }
-  { pkg, interfaces, worlds, packages: base.packages + next.packages, }
+  {
+    pkg,
+    interfaces,
+    worlds,
+    packages: base.packages + next.packages,
+    uses: base.uses + next.uses,
+  }
 }
 
 ///|
@@ -224,6 +230,7 @@ fn find_world_id(
 fn resolve_path_raise(
   path : String,
   world : String?,
+  options : ResolveOptions,
 ) -> ResolveInput raise ParseError {
   let main_ast = parse_path_raise(path)
   let is_dir = @fs.is_dir(path) catch { _ => false }
@@ -231,7 +238,13 @@ fn resolve_path_raise(
   let deps = load_deps(wit_dir)
   let asts = deps
   asts.push(main_ast)
-  let resolve = resolve_asts(asts)
-  let world_id = find_world_id(resolve, main_ast.pkg, main_ast.worlds, world)
+  let resolve = resolve_asts(asts, options)
+  let selection_ast = prepare_ast(main_ast, options)
+  let world_id = find_world_id(
+    resolve,
+    selection_ast.pkg,
+    selection_ast.worlds,
+    world,
+  )
   { resolve, world_id, }
 }

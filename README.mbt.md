@@ -9,7 +9,11 @@ WIT (WebAssembly Interface Types) parser and resolver written in MoonBit.
 - **Path resolver** – Load WIT files from `deps/` directory layouts produced by `wkg`
 - **Current WIT syntax** – Async functions, optional future/stream payloads, error contexts, fixed-length lists, maps, file-local aliases, nested packages, external IDs, and property accessors
 
-See [WIT support and validation limits](SPEC.md) and [0.4.0 API changes](CHANGELOG.md). Verified with MoonBit `0.1.20261104`.
+See [WIT support and validation limits](SPEC.md) and [API changes](CHANGELOG.md). Verified with MoonBit `0.1.20261104`.
+
+## Conformance fixes in 0.4.1
+
+Version 0.4.1 validates names and resource borrowing, resolves transitive world imports, retains stability metadata, and supports feature/version selection through `ResolveOptions`. See [the changelog](CHANGELOG.md).
 
 ## Install
 

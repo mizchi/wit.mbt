@@ -13,15 +13,15 @@ pub fn parse(String) -> Result[WitFile, ParseError]
 
 pub fn parse_path(String) -> Result[WitFile, ParseError]
 
-pub fn resolve(String) -> Result[Resolve, ParseError]
+pub fn resolve(String, options? : ResolveOptions) -> Result[Resolve, ParseError]
 
-pub fn resolve_interface_infos(String) -> Result[Array[ResolvedInterfaceInfo], ParseError]
+pub fn resolve_interface_infos(String, options? : ResolveOptions) -> Result[Array[ResolvedInterfaceInfo], ParseError]
 
-pub fn resolve_multi(Array[WitFile]) -> Result[Resolve, ParseError]
+pub fn resolve_multi(Array[WitFile], options? : ResolveOptions) -> Result[Resolve, ParseError]
 
-pub fn resolve_path(String, world? : String) -> Result[ResolveInput, ParseError]
+pub fn resolve_path(String, world? : String, options? : ResolveOptions) -> Result[ResolveInput, ParseError]
 
-pub fn resolve_path_interface_infos(String, world? : String) -> Result[Array[ResolvedInterfaceInfo], ParseError]
+pub fn resolve_path_interface_infos(String, world? : String, options? : ResolveOptions) -> Result[Array[ResolvedInterfaceInfo], ParseError]
 
 pub fn tokenize(String) -> Result[Array[Token], ParseError]
 
@@ -38,6 +38,16 @@ pub fn ParseError::to_string(Self) -> String
 pub impl Show for ParseError
 
 // Types and methods
+#derive(Eq, @debug.Debug)
+pub struct Attributes {
+  since : String?
+  unstable : String?
+  deprecated : String?
+}
+pub fn Attributes::equal(Self, Self) -> Bool
+pub fn Attributes::not_equal(Self, Self) -> Bool
+pub fn Attributes::to_repr(Self) -> @debug.Repr
+
 #derive(Eq, @debug.Debug)
 pub struct Field {
   name : String
@@ -58,6 +68,7 @@ pub struct Function {
   result : TypeExpr?
   docs : String?
   external_id : String?
+  attributes : Attributes
 }
 pub fn Function::equal(Self, Self) -> Bool
 pub fn Function::not_equal(Self, Self) -> Bool
@@ -93,6 +104,7 @@ pub impl Show for FunctionKind
 pub struct IncludeDecl {
   path : UsePath
   renames : Array[IncludeRename]
+  attributes : Attributes
 }
 pub fn IncludeDecl::equal(Self, Self) -> Bool
 pub fn IncludeDecl::not_equal(Self, Self) -> Bool
@@ -131,6 +143,7 @@ pub struct Interface {
   name : String
   docs : String?
   items : Array[InterfaceItem]
+  attributes : Attributes
 }
 pub fn Interface::equal(Self, Self) -> Bool
 pub fn Interface::not_equal(Self, Self) -> Bool
@@ -185,6 +198,7 @@ pub struct RFunction {
   result : RType?
   docs : String?
   external_id : String?
+  attributes : Attributes
 }
 pub fn RFunction::equal(Self, Self) -> Bool
 pub fn RFunction::not_equal(Self, Self) -> Bool
@@ -241,6 +255,7 @@ pub struct RInterface {
   functions : Map[String, RFunction]
   types : Map[String, Int32]
   pkg : Int32?
+  attributes : Attributes
 }
 pub fn RInterface::equal(Self, Self) -> Bool
 pub fn RInterface::not_equal(Self, Self) -> Bool
@@ -255,6 +270,7 @@ pub impl @json.ToJson for RInterface
 pub struct RInterfaceRef {
   id : Int32
   external_id : String?
+  attributes : Attributes
 }
 pub fn RInterfaceRef::equal(Self, Self) -> Bool
 pub fn RInterfaceRef::not_equal(Self, Self) -> Bool
@@ -343,6 +359,7 @@ pub struct RTypeDef {
   owner : RTypeOwner
   docs : String?
   external_id : String?
+  attributes : Attributes
 }
 pub fn RTypeDef::equal(Self, Self) -> Bool
 pub fn RTypeDef::not_equal(Self, Self) -> Bool
@@ -416,6 +433,7 @@ pub struct RWorld {
   imports : Map[String, RWorldItem]
   exports : Map[String, RWorldItem]
   pkg : Int32?
+  attributes : Attributes
 }
 pub fn RWorld::equal(Self, Self) -> Bool
 pub fn RWorld::not_equal(Self, Self) -> Bool
@@ -470,6 +488,13 @@ pub fn ResolveInput::to_repr(Self) -> @debug.Repr
 pub fn ResolveInput::to_string(Self) -> String
 pub impl Show for ResolveInput
 pub impl @json.ToJson for ResolveInput
+
+pub struct ResolveOptions {
+  features : Array[String]
+  all_features : Bool
+  target_version : String?
+}
+pub fn ResolveOptions::new(features? : Array[String], all_features? : Bool, target_version? : String) -> Self
 
 #derive(Eq, @debug.Debug)
 pub struct ResolvedInterfaceInfo {
@@ -531,6 +556,7 @@ pub impl Show for Token
 #derive(Eq, @debug.Debug)
 pub enum TokenType {
   Ident(String)
+  ExplicitIdent(String)
   Keyword(String)
   Symbol(String)
   StringLit(String)
@@ -546,11 +572,22 @@ pub fn TokenType::to_string(Self) -> String
 pub impl Show for TokenType
 
 #derive(Eq, @debug.Debug)
+pub struct TopLevelUse {
+  from : UsePath
+  name : String
+  attributes : Attributes
+}
+pub fn TopLevelUse::equal(Self, Self) -> Bool
+pub fn TopLevelUse::not_equal(Self, Self) -> Bool
+pub fn TopLevelUse::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
 pub struct TypeDef {
   name : String
   kind : TypeDefKind
   docs : String?
   external_id : String?
+  attributes : Attributes
 }
 pub fn TypeDef::equal(Self, Self) -> Bool
 pub fn TypeDef::not_equal(Self, Self) -> Bool
@@ -615,6 +652,7 @@ pub struct UseDecl {
   from : UsePath
   names : Array[String]
   renames : Array[IncludeRename]
+  attributes : Attributes
 }
 pub fn UseDecl::equal(Self, Self) -> Bool
 pub fn UseDecl::not_equal(Self, Self) -> Bool
@@ -653,6 +691,7 @@ pub struct WitFile {
   interfaces : Array[Interface]
   worlds : Array[World]
   packages : Array[WitFile]
+  uses : Array[TopLevelUse]
 }
 pub fn WitFile::equal(Self, Self) -> Bool
 pub fn WitFile::not_equal(Self, Self) -> Bool
@@ -668,6 +707,7 @@ pub struct World {
   types : Array[TypeDef]
   imports : Array[WorldItem]
   exports : Array[WorldItem]
+  attributes : Attributes
 }
 pub fn World::equal(Self, Self) -> Bool
 pub fn World::not_equal(Self, Self) -> Bool
@@ -681,6 +721,7 @@ pub enum WorldItem {
   Interface(UsePath)
   NamedInterface(String, UsePath)
   External(String, WorldItem)
+  Attributed(Attributes, WorldItem)
   Function(Function)
   InlineInterface(InlineInterface)
   Include(IncludeDecl)

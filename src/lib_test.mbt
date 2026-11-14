@@ -65,9 +65,11 @@ test "parse hello" {
       #|              result: Some(String_),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|        ],
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    worlds: [
@@ -77,9 +79,11 @@ test "parse hello" {
       #|        types: [],
       #|        imports: [],
       #|        exports: [Interface({ pkg: None, interface: "greet" })],
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    packages: [],
+      #|    uses: [],
       #|  },
       #|)
     ),
@@ -107,6 +111,7 @@ test "parse complex types" {
       #|              kind: Record([{ name: "x", ty: S32 }, { name: "y", ty: S32 }]),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          TypeDef(
@@ -121,6 +126,7 @@ test "parse complex types" {
       #|              ),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          Function(
@@ -131,6 +137,7 @@ test "parse complex types" {
       #|              result: Some(String_),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          Function(
@@ -141,6 +148,7 @@ test "parse complex types" {
       #|              result: Some(Id("point")),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          Function(
@@ -151,6 +159,7 @@ test "parse complex types" {
       #|              result: Some(Option(S32)),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          Function(
@@ -161,6 +170,7 @@ test "parse complex types" {
       #|              result: Some(Result(Some(S32), Some(String_))),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          Function(
@@ -171,9 +181,11 @@ test "parse complex types" {
       #|              result: Some(List(Id("point"))),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|        ],
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    worlds: [
@@ -183,9 +195,11 @@ test "parse complex types" {
       #|        types: [],
       #|        imports: [],
       #|        exports: [Interface({ pkg: None, interface: "types" })],
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    packages: [],
+      #|    uses: [],
       #|  },
       #|)
     ),
@@ -220,6 +234,7 @@ test "parse resource" {
       #|                      result: None,
       #|                      docs: None,
       #|                      external_id: None,
+      #|                      attributes: { since: None, unstable: None, deprecated: None },
       #|                    },
       #|                    {
       #|                      name: "size",
@@ -228,6 +243,7 @@ test "parse resource" {
       #|                      result: Some(U32),
       #|                      docs: None,
       #|                      external_id: None,
+      #|                      attributes: { since: None, unstable: None, deprecated: None },
       #|                    },
       #|                    {
       #|                      name: "read",
@@ -236,6 +252,7 @@ test "parse resource" {
       #|                      result: Some(List(U8)),
       #|                      docs: None,
       #|                      external_id: None,
+      #|                      attributes: { since: None, unstable: None, deprecated: None },
       #|                    },
       #|                    {
       #|                      name: "write",
@@ -244,12 +261,14 @@ test "parse resource" {
       #|                      result: None,
       #|                      docs: None,
       #|                      external_id: None,
+      #|                      attributes: { since: None, unstable: None, deprecated: None },
       #|                    },
       #|                  ],
       #|                },
       #|              ),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          Function(
@@ -260,6 +279,7 @@ test "parse resource" {
       #|              result: Some(Own("blob")),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          Function(
@@ -270,6 +290,7 @@ test "parse resource" {
       #|              result: Some(U32),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          Function(
@@ -280,9 +301,11 @@ test "parse resource" {
       #|              result: Some(List(U8)),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|        ],
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    worlds: [
@@ -292,9 +315,11 @@ test "parse resource" {
       #|        types: [],
       #|        imports: [],
       #|        exports: [Interface({ pkg: None, interface: "blob-store" })],
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    packages: [],
+      #|    uses: [],
       #|  },
       #|)
     ),
@@ -360,9 +385,11 @@ test "parse world imports" {
       #|              result: Some(S32),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|        ],
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    worlds: [
@@ -385,9 +412,11 @@ test "parse world imports" {
       #|          ),
       #|        ],
       #|        exports: [Interface({ pkg: None, interface: "api" })],
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    packages: [],
+      #|    uses: [],
       #|  },
       #|)
     ),
@@ -539,7 +568,8 @@ test "parse gates and includes in world" {
       let mut has_stdout_import = false
       for item in world.imports {
         match item {
-          @wit.WorldItem::Interface(path) =>
+          @wit.WorldItem::Interface(path)
+          | @wit.WorldItem::Attributed(_, @wit.WorldItem::Interface(path)) =>
             if path.interface == "stdout" {
               has_stdout_import = true
               match path.pkg {
@@ -748,8 +778,17 @@ test "resolve hello" {
       #|        name: "hello",
       #|        docs: None,
       #|        imports: {},
-      #|        exports: { "interface-0": Interface({ id: 0, external_id: None }) },
+      #|        exports: {
+      #|          "interface-0": Interface(
+      #|            {
+      #|              id: 0,
+      #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
+      #|            },
+      #|          ),
+      #|        },
       #|        pkg: Some(0),
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    interfaces: [
@@ -764,10 +803,12 @@ test "resolve hello" {
       #|            result: Some(String_),
       #|            docs: None,
       #|            external_id: None,
+      #|            attributes: { since: None, unstable: None, deprecated: None },
       #|          },
       #|        },
       #|        types: {},
       #|        pkg: Some(0),
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    types: [],
@@ -798,8 +839,17 @@ test "resolve resource" {
       #|        name: "resource-world",
       #|        docs: None,
       #|        imports: {},
-      #|        exports: { "interface-0": Interface({ id: 0, external_id: None }) },
+      #|        exports: {
+      #|          "interface-0": Interface(
+      #|            {
+      #|              id: 0,
+      #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
+      #|            },
+      #|          ),
+      #|        },
       #|        pkg: Some(0),
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    interfaces: [
@@ -814,6 +864,7 @@ test "resolve resource" {
       #|            result: Some(Id(3)),
       #|            docs: None,
       #|            external_id: None,
+      #|            attributes: { since: None, unstable: None, deprecated: None },
       #|          },
       #|          "[method]blob.size": {
       #|            name: "[method]blob.size",
@@ -822,6 +873,7 @@ test "resolve resource" {
       #|            result: Some(U32),
       #|            docs: None,
       #|            external_id: None,
+      #|            attributes: { since: None, unstable: None, deprecated: None },
       #|          },
       #|          "create-blob": {
       #|            name: "create-blob",
@@ -830,10 +882,12 @@ test "resolve resource" {
       #|            result: Some(Id(3)),
       #|            docs: None,
       #|            external_id: None,
+      #|            attributes: { since: None, unstable: None, deprecated: None },
       #|          },
       #|        },
       #|        types: { "blob": 0 },
       #|        pkg: Some(0),
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    types: [
@@ -843,6 +897,7 @@ test "resolve resource" {
       #|        owner: Interface(0),
       #|        docs: None,
       #|        external_id: None,
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|      {
       #|        name: None,
@@ -850,6 +905,7 @@ test "resolve resource" {
       #|        owner: None,
       #|        docs: None,
       #|        external_id: None,
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|      {
       #|        name: None,
@@ -857,6 +913,7 @@ test "resolve resource" {
       #|        owner: None,
       #|        docs: None,
       #|        external_id: None,
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|      {
       #|        name: None,
@@ -864,6 +921,7 @@ test "resolve resource" {
       #|        owner: None,
       #|        docs: None,
       #|        external_id: None,
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    packages: [
@@ -903,6 +961,7 @@ test "resolve world function types" {
       #|              result: Some(Id(4)),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          "[method]blob.size": Function(
@@ -913,6 +972,7 @@ test "resolve world function types" {
       #|              result: Some(U32),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|        },
@@ -925,6 +985,7 @@ test "resolve world function types" {
       #|              result: Some(Id(0)),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          "take-borrow": Function(
@@ -935,6 +996,7 @@ test "resolve world function types" {
       #|              result: Some(U32),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|          "make-own": Function(
@@ -945,10 +1007,12 @@ test "resolve world function types" {
       #|              result: Some(Id(4)),
       #|              docs: None,
       #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
       #|            },
       #|          ),
       #|        },
       #|        pkg: Some(0),
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    interfaces: [],
@@ -959,6 +1023,7 @@ test "resolve world function types" {
       #|        owner: World(0),
       #|        docs: None,
       #|        external_id: None,
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|      {
       #|        name: Some("blob"),
@@ -966,6 +1031,7 @@ test "resolve world function types" {
       #|        owner: World(0),
       #|        docs: None,
       #|        external_id: None,
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|      {
       #|        name: None,
@@ -973,6 +1039,7 @@ test "resolve world function types" {
       #|        owner: None,
       #|        docs: None,
       #|        external_id: None,
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|      {
       #|        name: None,
@@ -980,6 +1047,7 @@ test "resolve world function types" {
       #|        owner: None,
       #|        docs: None,
       #|        external_id: None,
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|      {
       #|        name: None,
@@ -987,6 +1055,7 @@ test "resolve world function types" {
       #|        owner: None,
       #|        docs: None,
       #|        external_id: None,
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    packages: [
@@ -1015,9 +1084,26 @@ test "resolve world inline interface" {
       #|      {
       #|        name: "app",
       #|        docs: None,
-      #|        imports: { "foo": Interface({ id: 0, external_id: None }) },
-      #|        exports: { "bar": Interface({ id: 1, external_id: None }) },
+      #|        imports: {
+      #|          "foo": Interface(
+      #|            {
+      #|              id: 0,
+      #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
+      #|            },
+      #|          ),
+      #|        },
+      #|        exports: {
+      #|          "bar": Interface(
+      #|            {
+      #|              id: 1,
+      #|              external_id: None,
+      #|              attributes: { since: None, unstable: None, deprecated: None },
+      #|            },
+      #|          ),
+      #|        },
       #|        pkg: Some(0),
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    interfaces: [
@@ -1032,10 +1118,12 @@ test "resolve world inline interface" {
       #|            result: Some(S32),
       #|            docs: None,
       #|            external_id: None,
+      #|            attributes: { since: None, unstable: None, deprecated: None },
       #|          },
       #|        },
       #|        types: {},
       #|        pkg: Some(0),
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|      {
       #|        name: None,
@@ -1048,10 +1136,12 @@ test "resolve world inline interface" {
       #|            result: None,
       #|            docs: None,
       #|            external_id: None,
+      #|            attributes: { since: None, unstable: None, deprecated: None },
       #|          },
       #|        },
       #|        types: {},
       #|        pkg: Some(0),
+      #|        attributes: { since: None, unstable: None, deprecated: None },
       #|      },
       #|    ],
       #|    types: [],
@@ -1227,7 +1317,7 @@ test "tokenize percent-escaped keyword" {
     content=(
       #|Ok(
       #|  [
-      #|    { token_type: Ident("type"), offset: 0 },
+      #|    { token_type: ExplicitIdent("type"), offset: 0 },
       #|    { token_type: Symbol(":"), offset: 5 },
       #|    { token_type: Ident("descriptor-type"), offset: 7 },
       #|    { token_type: Symbol(","), offset: 22 },

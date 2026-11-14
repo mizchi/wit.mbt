@@ -159,6 +159,7 @@ pub impl ToJson for RFunction with fn to_json(self) {
   if self.external_id is Some(id) {
     obj.set("external-id", json_string(id))
   }
+  write_stability_json(obj, self.attributes)
   Json::object(obj)
 }
 
@@ -194,6 +195,7 @@ pub impl ToJson for RInterfaceRef with fn to_json(self) {
   if self.external_id is Some(id) {
     obj.set("external-id", json_string(id))
   }
+  write_stability_json(obj, self.attributes)
   Json::object(obj)
 }
 
@@ -208,6 +210,7 @@ pub impl ToJson for RInterface with fn to_json(self) {
   obj.set("name", json_option(self.name))
   obj.set("package", json_option(self.pkg))
   obj.set("types", map_sorted_to_json(self.types))
+  write_stability_json(obj, self.attributes)
   Json::object(obj)
 }
 
@@ -222,6 +225,7 @@ pub impl ToJson for RWorld with fn to_json(self) {
   obj.set("imports", world_items_to_json(self.imports))
   obj.set("name", json_string(self.name))
   obj.set("package", json_option(self.pkg))
+  write_stability_json(obj, self.attributes)
   Json::object(obj)
 }
 
@@ -344,6 +348,7 @@ pub impl ToJson for RTypeDef with fn to_json(self) {
   if self.external_id is Some(id) {
     obj.set("external-id", json_string(id))
   }
+  write_stability_json(obj, self.attributes)
   Json::object(obj)
 }
 
@@ -415,3 +420,26 @@ pub extend Resolve with ToJson::{to_json}
 
 ///|
 pub extend ResolveInput with ToJson::{to_json}
+
+///|
+fn write_stability_json(
+  obj : Map[String, Json],
+  attributes : Attributes,
+) -> Unit {
+  let details : Map[String, Json] = Map([])
+  let key = match (attributes.since, attributes.unstable) {
+    (Some(since), _) => {
+      details.set("since", json_string(since))
+      "stable"
+    }
+    (_, Some(feature)) => {
+      details.set("feature", json_string(feature))
+      "unstable"
+    }
+    _ => return
+  }
+  if attributes.deprecated is Some(version) {
+    details.set("deprecated", json_string(version))
+  }
+  obj.set("stability", Json::object(Map([(key, Json::object(details))])))
+}

@@ -23,8 +23,8 @@ test-update:
     moon test --update --target {{target}}
 
 # Run main
-run:
-    moon run src/main --target {{target}}
+run *args:
+    moon run src/main --target {{target}} -- {{args}}
 
 # Generate type definition files
 info:
@@ -38,5 +38,9 @@ clean:
 release-check: fmt info check test
 
 # Compare type semantics and function JSON with wasm-tools (requires Python 3)
-spec-check:
-    python3 scripts/check-spec.py
+spec-check *args:
+    python3 scripts/check-spec.py {{args}}
+
+# Build the pinned upstream WIT oracle (requires Cargo and network access)
+spec-reference:
+    python3 scripts/build-spec-reference.py

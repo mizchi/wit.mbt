@@ -19,8 +19,11 @@ pub fn parse_path(path : String) -> Result[WitFile, ParseError] {
 ///|
 /// Resolve a WIT source string into a `Resolve`.
 #warnings("-78")
-pub fn resolve(source : String) -> Result[Resolve, ParseError] {
-  Ok(resolve_wit(source)) catch {
+pub fn resolve(
+  source : String,
+  options~ : ResolveOptions = ResolveOptions::new(),
+) -> Result[Resolve, ParseError] {
+  Ok(resolve_wit(source, options)) catch {
     e => Err(e)
   }
 }
@@ -28,8 +31,11 @@ pub fn resolve(source : String) -> Result[Resolve, ParseError] {
 ///|
 /// Resolve multiple WIT ASTs into a single `Resolve`.
 #warnings("-78")
-pub fn resolve_multi(asts : Array[WitFile]) -> Result[Resolve, ParseError] {
-  Ok(resolve_asts(asts)) catch {
+pub fn resolve_multi(
+  asts : Array[WitFile],
+  options~ : ResolveOptions = ResolveOptions::new(),
+) -> Result[Resolve, ParseError] {
+  Ok(resolve_asts(asts, options)) catch {
     e => Err(e)
   }
 }
@@ -40,8 +46,9 @@ pub fn resolve_multi(asts : Array[WitFile]) -> Result[Resolve, ParseError] {
 pub fn resolve_path(
   path : String,
   world? : String,
+  options~ : ResolveOptions = ResolveOptions::new(),
 ) -> Result[ResolveInput, ParseError] {
-  Ok(resolve_path_raise(path, world)) catch {
+  Ok(resolve_path_raise(path, world, options)) catch {
     e => Err(e)
   }
 }

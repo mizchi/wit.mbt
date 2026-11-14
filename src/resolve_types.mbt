@@ -58,6 +58,7 @@ pub struct RFunction {
   result : RType?
   docs : String?
   external_id : String?
+  attributes : Attributes
 }
 
 ///|
@@ -84,6 +85,7 @@ pub impl Show for RWorldItem with fn to_string(self) {
 pub struct RInterfaceRef {
   id : Int32
   external_id : String?
+  attributes : Attributes
 }
 
 ///|
@@ -99,6 +101,7 @@ pub struct RInterface {
   functions : Map[String, RFunction]
   types : Map[String, Int32]
   pkg : Int32?
+  attributes : Attributes
 }
 
 ///|
@@ -114,6 +117,7 @@ pub struct RWorld {
   imports : Map[String, RWorldItem]
   exports : Map[String, RWorldItem]
   pkg : Int32?
+  attributes : Attributes
 }
 
 ///|
@@ -229,6 +233,7 @@ pub struct RTypeDef {
   owner : RTypeOwner
   docs : String?
   external_id : String?
+  attributes : Attributes
 }
 
 ///|

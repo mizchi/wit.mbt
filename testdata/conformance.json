@@ -1,0 +1,275 @@
+{
+  "upstream_revision": "a104ec67f6b640ff21b41e67d1145a1d4411df06",
+  "cases": [
+    {
+      "name": "duplicate-function",
+      "source": "package test:a;\ninterface api { run: func(); run: func(); } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "case-collision-function",
+      "source": "package test:a;\ninterface api { run: func(); RUN: func(); } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "duplicate-interface",
+      "source": "package test:a;\ninterface api {} interface api {} world w {}",
+      "accepted": false
+    },
+    {
+      "name": "duplicate-type",
+      "source": "package test:a;\ninterface api { type value=u32; type value=string; } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "duplicate-param",
+      "source": "package test:a;\ninterface api { run:func(x:u32,x:string); } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "case-collision-param",
+      "source": "package test:a;\ninterface api { run:func(x:u32,X:string); } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "duplicate-field",
+      "source": "package test:a;\ninterface api { record item {x:u32,x:string} } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "duplicate-enum",
+      "source": "package test:a;\ninterface api { enum color {red,red} } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "empty-enum",
+      "source": "package test:a;\ninterface api { enum color {} } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "empty-variant",
+      "source": "package test:a;\ninterface api { variant color {} } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "empty-flags",
+      "source": "package test:a;\ninterface api { flags color {} } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "empty-tuple",
+      "source": "package test:a;\ninterface api { type empty=tuple<>; } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "empty-record",
+      "source": "package test:a;\ninterface api { record empty {} } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "flags-33",
+      "source": "package test:a;\ninterface api { flags colors {f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,f19,f20,f21,f22,f23,f24,f25,f26,f27,f28,f29,f30,f31,f32} } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "nonresource-borrow",
+      "source": "package test:a;\ninterface api { type count=u32; f:func(x:borrow<count>); } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "nonresource-own",
+      "source": "package test:a;\ninterface api { type count=u32; f:func(x:own<count>); } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "borrow-return",
+      "source": "package test:a;\ninterface api { resource item; f:func()->borrow<item>; } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "borrow-future",
+      "source": "package test:a;\ninterface api { resource item; f:func(x:future<borrow<item>>); } world w {}",
+      "accepted": true
+    },
+    {
+      "name": "borrow-list",
+      "source": "package test:a;\ninterface api { resource item; f:func(x:list<borrow<item>>); } world w {}",
+      "accepted": true
+    },
+    {
+      "name": "borrow-self-param",
+      "source": "package test:a;\ninterface api { resource item { f:func(self:u32); } } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "interface-cycle",
+      "source": "package test:a;\ninterface a { use b.{y}; type x=u32; } interface b { use a.{x}; type y=u64; } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "long-use-chain",
+      "source": "package test:a;\ninterface a { use b.{x}; } interface b { use c.{x}; } interface c { use d.{x}; } interface d { type x=u32; } world w {export a;}",
+      "accepted": true
+    },
+    {
+      "name": "include-invalid-rename",
+      "source": "package test:a;\ninterface api {} world base { import api; } world w { include base with { api as another } }",
+      "accepted": false
+    },
+    {
+      "name": "include-unknown-rename",
+      "source": "package test:a;\nworld base { export run:func(); } world w { include base with { missing as another } }",
+      "accepted": false
+    },
+    {
+      "name": "include-overwritten-function",
+      "source": "package test:a;\nworld base { export run:func(); } world w { include base; export run:func(x:u32); }",
+      "accepted": false
+    },
+    {
+      "name": "missing-import",
+      "source": "package test:a;\nworld w { import missing; }",
+      "accepted": false
+    },
+    {
+      "name": "missing-qualified-import",
+      "source": "package test:a;\nworld w { import absent:package/api; }",
+      "accepted": false
+    },
+    {
+      "name": "unused-missing-use",
+      "source": "package test:a;\nuse missing; world w {}",
+      "accepted": false
+    },
+    {
+      "name": "prerelease-keyword",
+      "source": "package test:a@1.0.0-async;\nworld w {}",
+      "accepted": false
+    },
+    {
+      "name": "block-docs",
+      "source": "package test:a;\n/** API documentation */ interface api { /** Function documentation */ run:func(); } world w { export api; }",
+      "accepted": true
+    },
+    {
+      "name": "world-transitive-import",
+      "source": "package test:a;\ninterface shared { record metadata { value:u32 } } interface api { use shared.{metadata}; get:func()->metadata; } world w { export api; }",
+      "accepted": true
+    },
+    {
+      "name": "inline-transitive-import",
+      "source": "package test:a;\ninterface shared { record metadata {value:u32} } world w { import host:interface {use shared.{metadata}; get:func()->metadata;} }",
+      "accepted": true
+    },
+    {
+      "name": "world-use-transitive-import",
+      "source": "package test:a;\ninterface shared { record metadata {value:u32} } world w { use shared.{metadata}; export get:func()->metadata; }",
+      "accepted": true
+    },
+    {
+      "name": "alias-resource-borrow",
+      "source": "package test:a;\ninterface api { resource r; type alias=r; f:func(v:borrow<alias>); } world w {}",
+      "accepted": true
+    },
+    {
+      "name": "forward-alias-resource",
+      "source": "package test:a;\ninterface api { type alias=r; resource r; f:func(v:alias); } world w {export api;}",
+      "accepted": true
+    },
+    {
+      "name": "forward-type-cycle",
+      "source": "package test:a;\ninterface api { type a=b; type b=a; } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "multiple-constructors",
+      "source": "package test:a;\ninterface api { resource r {constructor(); constructor(v:u32);} } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "borrow-in-record-return",
+      "source": "package test:a;\ninterface api { resource r; record v {value:borrow<r>} f:func()->v; } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "missing-annotation-args",
+      "source": "package test:a;\n@since interface api {} world w {}",
+      "accepted": false
+    },
+    {
+      "name": "invalid-annotation-args",
+      "source": "package test:a;\n@since(nonsense=banana) interface api {} world w {}",
+      "accepted": false
+    },
+    {
+      "name": "annotation-noversion",
+      "source": "package test:a;\n@since(version=1.0.0) interface api {} world w {}",
+      "accepted": false
+    },
+    {
+      "name": "wrong-order-package",
+      "source": "interface api {} package test:a; world w {}",
+      "accepted": false
+    },
+    {
+      "name": "BOM",
+      "source": "﻿package test:a; world w {}",
+      "accepted": true
+    },
+    {
+      "name": "external-unicode",
+      "source": "package test:a;\ninterface api { @external-id(\"\\u{61}\") run:func(); } world w {export api;}",
+      "accepted": true
+    },
+    {
+      "name": "external-byte",
+      "source": "package test:a;\ninterface api { @external-id(\"\\61\") run:func(); } world w {export api;}",
+      "accepted": true
+    },
+    {
+      "name": "external-bad-escape",
+      "source": "package test:a;\ninterface api { @external-id(\"\\q\") run:func(); } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "external-scalar",
+      "source": "package test:a;\ninterface api { @external-id(\"\\u{110000}\") run:func(); } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "escaped-get",
+      "source": "package test:a;\ninterface api { x: %get() -> u32; } world w {}",
+      "accepted": false
+    },
+    {
+      "name": "property-result",
+      "source": "package test:a;\ninterface api { x:get()->result<u32,string>; x:set(v:u32)->result<_,string>; } world w {}",
+      "accepted": true
+    },
+    {
+      "name": "named-resource-instances",
+      "source": "package test:a;\ninterface store {resource bucket;} world w {import one: store; import two: store;}",
+      "accepted": true
+    },
+    {
+      "name": "include-case-collision",
+      "source": "package t:p; world base { export run:func(); } world w { include base; export RUN:func(); }",
+      "accepted": false
+    },
+    {
+      "name": "recursive-handle-alias",
+      "source": "package t:p; interface api {type a=borrow<a>;} world w {}",
+      "accepted": false
+    },
+    {
+      "name": "dangling-annotation",
+      "source": "package t:p@1.0.0; interface api {@since(version=1.0.0)} world w {}",
+      "accepted": false
+    },
+    {
+      "name": "disabled-duplicate-function",
+      "source": "package test:gates; interface api { run:func(); @unstable(feature=preview) run:func(); } world w {}",
+      "accepted": false
+    }
+  ]
+}
