@@ -92,7 +92,7 @@ fn merge_wit_files(
   for world in next.worlds {
     worlds.push(world)
   }
-  { pkg, interfaces, worlds, }
+  { pkg, interfaces, worlds, packages: base.packages + next.packages, }
 }
 
 ///|
@@ -170,7 +170,7 @@ fn find_world_id(
   main_pkg : PackageName?,
   main_worlds : Array[World],
   world : String?,
-) -> Int raise ParseError {
+) -> Int32 raise ParseError {
   let target_name = match world {
     Option::Some(name) => name
     Option::None =>
@@ -183,7 +183,7 @@ fn find_world_id(
   match main_pkg {
     Option::Some(pkg) => {
       let target_pkg = to_rpkg(pkg)
-      let mut pkg_id : Int? = Option::None
+      let mut pkg_id : Int32? = Option::None
       for i, item in resolve.packages {
         if item.name == target_pkg {
           pkg_id = Option::Some(i)

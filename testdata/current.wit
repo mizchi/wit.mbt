@@ -1,0 +1,23 @@
+package test:current;
+
+interface types {
+  type empty = future;
+  type pending-number = future<u32>;
+  type events = stream;
+  type bytes = stream<u8>;
+  type failure = result<_, string>;
+  type success = result<u32>;
+  type outcome = result;
+  type context = error-context;
+  type ipv4 = list<u8, 4>;
+  type empty-list = list<u8, 0>;
+  type headers = map<string, u32>;
+  run: async func(ip: ipv4) -> future;
+  resource task {
+    constructor() -> result<task, string>;
+  }
+}
+
+world app {
+  export types;
+}

@@ -1,14 +1,15 @@
 ///|
+#derive(Eq, Debug)
 pub struct ResolvedTypeInfo {
   local_name : String
-  type_id : Int
+  type_id : Int32
   type_name : String?
   type_kind : RTypeKind
   owner : RTypeOwner
   owner_package : RPackageName?
   owner_interface : String?
   owner_world : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl Show for ResolvedTypeInfo with fn to_string(self) {
@@ -16,14 +17,15 @@ pub impl Show for ResolvedTypeInfo with fn to_string(self) {
 }
 
 ///|
+#derive(Eq, Debug)
 pub struct ResolvedInterfaceInfo {
-  interface_id : Int
+  interface_id : Int32
   name : String?
   docs : String?
   package_name : RPackageName?
   functions : Map[String, RFunction]
   types : Map[String, ResolvedTypeInfo]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl Show for ResolvedInterfaceInfo with fn to_string(self) {
@@ -31,7 +33,7 @@ pub impl Show for ResolvedInterfaceInfo with fn to_string(self) {
 }
 
 ///|
-fn package_name_from_id(resolve : Resolve, pkg_id : Int?) -> RPackageName? {
+fn package_name_from_id(resolve : Resolve, pkg_id : Int32?) -> RPackageName? {
   match pkg_id {
     Some(id) => Some(resolve.packages[id].name)
     None => None
@@ -69,7 +71,7 @@ fn owner_package_name(resolve : Resolve, owner : RTypeOwner) -> RPackageName? {
 fn build_resolved_type_info(
   resolve : Resolve,
   local_name : String,
-  type_id : Int,
+  type_id : Int32,
 ) -> ResolvedTypeInfo {
   let type_def = resolve.types[type_id]
   {
@@ -108,6 +110,7 @@ pub fn interface_infos(resolve : Resolve) -> Array[ResolvedInterfaceInfo] {
 
 ///|
 /// Resolve WIT source and return resolved interface infos.
+#warnings("-78")
 pub fn resolve_interface_infos(
   source : String,
 ) -> Result[Array[ResolvedInterfaceInfo], ParseError] {
@@ -119,6 +122,7 @@ pub fn resolve_interface_infos(
 
 ///|
 /// Resolve WIT path and return resolved interface infos.
+#warnings("-78")
 pub fn resolve_path_interface_infos(
   path : String,
   world? : String,
@@ -132,3 +136,21 @@ pub fn resolve_path_interface_infos(
     Err(err) => Err(err)
   }
 }
+
+///|
+pub extend ResolvedTypeInfo with Eq::{not_equal, equal}
+
+///|
+pub extend ResolvedTypeInfo with Debug::{to_repr}
+
+///|
+pub extend ResolvedTypeInfo with Show::{to_string, output}
+
+///|
+pub extend ResolvedInterfaceInfo with Eq::{not_equal, equal}
+
+///|
+pub extend ResolvedInterfaceInfo with Debug::{to_repr}
+
+///|
+pub extend ResolvedInterfaceInfo with Show::{to_string, output}

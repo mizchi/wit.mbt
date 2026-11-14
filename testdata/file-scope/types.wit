@@ -1,0 +1,7 @@
+interface numbers {
+  type value = u32;
+}
+
+interface strings {
+  type value = string;
+}

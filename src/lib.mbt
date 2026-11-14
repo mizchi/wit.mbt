@@ -1,5 +1,6 @@
 ///|
 /// Parse a WIT source string into a `WitFile`.
+#warnings("-78")
 pub fn parse(source : String) -> Result[WitFile, ParseError] {
   Ok(parse_wit(source)) catch {
     e => Err(e)
@@ -8,6 +9,7 @@ pub fn parse(source : String) -> Result[WitFile, ParseError] {
 
 ///|
 /// Parse a WIT file or directory into a `WitFile`.
+#warnings("-78")
 pub fn parse_path(path : String) -> Result[WitFile, ParseError] {
   Ok(parse_path_raise(path)) catch {
     e => Err(e)
@@ -16,6 +18,7 @@ pub fn parse_path(path : String) -> Result[WitFile, ParseError] {
 
 ///|
 /// Resolve a WIT source string into a `Resolve`.
+#warnings("-78")
 pub fn resolve(source : String) -> Result[Resolve, ParseError] {
   Ok(resolve_wit(source)) catch {
     e => Err(e)
@@ -24,6 +27,7 @@ pub fn resolve(source : String) -> Result[Resolve, ParseError] {
 
 ///|
 /// Resolve multiple WIT ASTs into a single `Resolve`.
+#warnings("-78")
 pub fn resolve_multi(asts : Array[WitFile]) -> Result[Resolve, ParseError] {
   Ok(resolve_asts(asts)) catch {
     e => Err(e)
@@ -32,6 +36,7 @@ pub fn resolve_multi(asts : Array[WitFile]) -> Result[Resolve, ParseError] {
 
 ///|
 /// Resolve a WIT file or directory (with deps) into a `ResolveInput`.
+#warnings("-78")
 pub fn resolve_path(
   path : String,
   world? : String,

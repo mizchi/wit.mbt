@@ -1,12 +1,12 @@
 ///|
 fn main {
-  let args = @env.args()
-  if args.length() < 2 {
+  let args = user_arguments()
+  if args.length() < 1 {
     println("Usage: wit-resolve <wit-path> [world]")
     @sys.exit(1)
   }
-  let path = args[1]
-  let world = if args.length() > 2 { Some(args[2]) } else { None }
+  let path = args[0]
+  let world = if args.length() > 1 { Some(args[1]) } else { None }
   let result = match world {
     Some(name) => @wit.resolve_path(path, world=name)
     None => @wit.resolve_path(path)
@@ -21,4 +21,16 @@ fn main {
       @sys.exit(1)
     }
   }
+}
+
+///|
+#cfg(target="js")
+fn user_arguments() -> Array[String] {
+  @env.args()[2:].to_owned()
+}
+
+///|
+#cfg(not(target="js"))
+fn user_arguments() -> Array[String] {
+  @env.args()[1:].to_owned()
 }

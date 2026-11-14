@@ -11,7 +11,7 @@ Parse a WIT source string.
 test {
   let source = "package local:hello;\n\ninterface greet {\n  greet: func(name: string) -> string;\n}\n\nworld hello {\n  export greet;\n}\n"
   debug_inspect(
-    parse(source),
+    @wit.parse(source),
     content=(
       #|Ok(
       #|  {
@@ -28,6 +28,7 @@ test {
       #|              params: [{ name: "name", ty: String_ }],
       #|              result: Some(String_),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|        ],
@@ -42,6 +43,7 @@ test {
       #|        exports: [Interface({ pkg: None, interface: "greet" })],
       #|      },
       #|    ],
+      #|    packages: [],
       #|  },
       #|)
     ),
@@ -58,7 +60,7 @@ Resolve a WIT source string into a Resolve structure.
 test {
   let source = "package local:hello;\n\ninterface greet {\n  greet: func(name: string) -> string;\n}\n\nworld hello {\n  export greet;\n}\n"
   debug_inspect(
-    resolve(source),
+    @wit.resolve(source),
     content=(
       #|Ok(
       #|  {
@@ -67,7 +69,7 @@ test {
       #|        name: "hello",
       #|        docs: None,
       #|        imports: {},
-      #|        exports: { "interface-0": Interface({ id: 0 }) },
+      #|        exports: { "interface-0": Interface({ id: 0, external_id: None }) },
       #|        pkg: Some(0),
       #|      },
       #|    ],
@@ -82,6 +84,7 @@ test {
       #|            params: [("name", String_)],
       #|            result: Some(String_),
       #|            docs: None,
+      #|            external_id: None,
       #|          },
       #|        },
       #|        types: {},
@@ -111,7 +114,7 @@ Tokenize a WIT source string.
 ///|
 test {
   debug_inspect(
-    tokenize("package local:hello;"),
+    @wit.tokenize("package local:hello;"),
     content=(
       #|Ok(
       #|  [

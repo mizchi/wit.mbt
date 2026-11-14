@@ -2,7 +2,10 @@
 using @test {assert_eq}
 
 ///|
-fn find_world_by_name(worlds : Array[RWorld], name : String) -> RWorld? {
+fn find_world_by_name(
+  worlds : Array[@wit.RWorld],
+  name : String,
+) -> @wit.RWorld? {
   for world in worlds {
     if world.name == name {
       return Some(world)
@@ -13,9 +16,9 @@ fn find_world_by_name(worlds : Array[RWorld], name : String) -> RWorld? {
 
 ///|
 fn find_interface_by_name(
-  interfaces : Array[RInterface],
+  interfaces : Array[@wit.RInterface],
   name : String,
-) -> RInterface? {
+) -> @wit.RInterface? {
   for iface in interfaces {
     match iface.name {
       Some(iface_name) => if iface_name == name { return Some(iface) }
@@ -27,9 +30,9 @@ fn find_interface_by_name(
 
 ///|
 fn find_resolved_interface_info_by_name(
-  infos : Array[ResolvedInterfaceInfo],
+  infos : Array[@wit.ResolvedInterfaceInfo],
   name : String,
-) -> ResolvedInterfaceInfo? {
+) -> @wit.ResolvedInterfaceInfo? {
   for info in infos {
     match info.name {
       Some(interface_name) => if interface_name == name { return Some(info) }
@@ -42,7 +45,7 @@ fn find_resolved_interface_info_by_name(
 ///|
 test "parse hello" {
   let source = "package local:hello;\n\ninterface greet {\n  greet: func(name: string) -> string;\n}\n\nworld hello {\n  export greet;\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   debug_inspect(
     result,
     content=(
@@ -61,6 +64,7 @@ test "parse hello" {
       #|              params: [{ name: "name", ty: String_ }],
       #|              result: Some(String_),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|        ],
@@ -75,6 +79,7 @@ test "parse hello" {
       #|        exports: [Interface({ pkg: None, interface: "greet" })],
       #|      },
       #|    ],
+      #|    packages: [],
       #|  },
       #|)
     ),
@@ -84,7 +89,7 @@ test "parse hello" {
 ///|
 test "parse complex types" {
   let source = "package my:complex;\n\ninterface types {\n  record point {\n    x: s32,\n    y: s32,\n  }\n\n  variant shape {\n    circle(s32),\n    rectangle(point),\n    none,\n  }\n\n  greet: func(name: string) -> string;\n  add-points: func(a: point, b: point) -> point;\n  area: func(s: shape) -> option<s32>;\n  parse-int: func(s: string) -> result<s32, string>;\n  get-items: func() -> list<point>;\n}\n\nworld example {\n  export types;\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   debug_inspect(
     result,
     content=(
@@ -101,6 +106,7 @@ test "parse complex types" {
       #|              name: "point",
       #|              kind: Record([{ name: "x", ty: S32 }, { name: "y", ty: S32 }]),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          TypeDef(
@@ -114,6 +120,7 @@ test "parse complex types" {
       #|                ],
       #|              ),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          Function(
@@ -123,6 +130,7 @@ test "parse complex types" {
       #|              params: [{ name: "name", ty: String_ }],
       #|              result: Some(String_),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          Function(
@@ -132,6 +140,7 @@ test "parse complex types" {
       #|              params: [{ name: "a", ty: Id("point") }, { name: "b", ty: Id("point") }],
       #|              result: Some(Id("point")),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          Function(
@@ -141,6 +150,7 @@ test "parse complex types" {
       #|              params: [{ name: "s", ty: Id("shape") }],
       #|              result: Some(Option(S32)),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          Function(
@@ -148,8 +158,9 @@ test "parse complex types" {
       #|              name: "parse-int",
       #|              kind: Freestanding,
       #|              params: [{ name: "s", ty: String_ }],
-      #|              result: Some(Result(S32, Some(String_))),
+      #|              result: Some(Result(Some(S32), Some(String_))),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          Function(
@@ -159,6 +170,7 @@ test "parse complex types" {
       #|              params: [],
       #|              result: Some(List(Id("point"))),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|        ],
@@ -173,6 +185,7 @@ test "parse complex types" {
       #|        exports: [Interface({ pkg: None, interface: "types" })],
       #|      },
       #|    ],
+      #|    packages: [],
       #|  },
       #|)
     ),
@@ -182,7 +195,7 @@ test "parse complex types" {
 ///|
 test "parse resource" {
   let source = "package local:resource-test;\n\ninterface blob-store {\n  resource blob {\n    constructor(data: list<u8>);\n    size: func() -> u32;\n    read: func(offset: u32, len: u32) -> list<u8>;\n    write: func(offset: u32, data: list<u8>);\n  }\n\n  create-blob: func(data: list<u8>) -> own<blob>;\n  get-blob-size: func(b: borrow<blob>) -> u32;\n  consume-blob: func(b: own<blob>) -> list<u8>;\n}\n\nworld resource-world {\n  export blob-store;\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   debug_inspect(
     result,
     content=(
@@ -206,6 +219,7 @@ test "parse resource" {
       #|                      params: [{ name: "data", ty: List(U8) }],
       #|                      result: None,
       #|                      docs: None,
+      #|                      external_id: None,
       #|                    },
       #|                    {
       #|                      name: "size",
@@ -213,6 +227,7 @@ test "parse resource" {
       #|                      params: [],
       #|                      result: Some(U32),
       #|                      docs: None,
+      #|                      external_id: None,
       #|                    },
       #|                    {
       #|                      name: "read",
@@ -220,6 +235,7 @@ test "parse resource" {
       #|                      params: [{ name: "offset", ty: U32 }, { name: "len", ty: U32 }],
       #|                      result: Some(List(U8)),
       #|                      docs: None,
+      #|                      external_id: None,
       #|                    },
       #|                    {
       #|                      name: "write",
@@ -227,11 +243,13 @@ test "parse resource" {
       #|                      params: [{ name: "offset", ty: U32 }, { name: "data", ty: List(U8) }],
       #|                      result: None,
       #|                      docs: None,
+      #|                      external_id: None,
       #|                    },
       #|                  ],
       #|                },
       #|              ),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          Function(
@@ -241,6 +259,7 @@ test "parse resource" {
       #|              params: [{ name: "data", ty: List(U8) }],
       #|              result: Some(Own("blob")),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          Function(
@@ -250,6 +269,7 @@ test "parse resource" {
       #|              params: [{ name: "b", ty: Borrow("blob") }],
       #|              result: Some(U32),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          Function(
@@ -259,6 +279,7 @@ test "parse resource" {
       #|              params: [{ name: "b", ty: Own("blob") }],
       #|              result: Some(List(U8)),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|        ],
@@ -273,6 +294,7 @@ test "parse resource" {
       #|        exports: [Interface({ pkg: None, interface: "blob-store" })],
       #|      },
       #|    ],
+      #|    packages: [],
       #|  },
       #|)
     ),
@@ -282,26 +304,26 @@ test "parse resource" {
 ///|
 test "parse resource function with name: static func syntax" {
   let source = "package local:resource-static;\n\ninterface blob-store {\n  resource fields {\n    from-list: static func(entries: list<string>) -> fields;\n    clone: func() -> fields;\n  }\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) => {
       assert_eq(wit_file.interfaces.length(), 1)
       let iface = wit_file.interfaces[0]
       assert_eq(iface.items.length(), 1)
       match iface.items[0] {
-        InterfaceItem::TypeDef(type_def) =>
+        @wit.InterfaceItem::TypeDef(type_def) =>
           match type_def.kind {
-            TypeDefKind::Resource(resource) => {
+            @wit.TypeDefKind::Resource(resource) => {
               assert_eq(resource.funcs.length(), 2)
               assert_eq(resource.funcs[0].name, "from-list")
               match resource.funcs[0].kind {
-                FunctionKind::Static(resource_name) =>
+                @wit.FunctionKind::Static(resource_name) =>
                   assert_eq(resource_name, "fields")
                 _ => abort("expected static function kind")
               }
               assert_eq(resource.funcs[1].name, "clone")
               match resource.funcs[1].kind {
-                FunctionKind::Method(resource_name) =>
+                @wit.FunctionKind::Method(resource_name) =>
                   assert_eq(resource_name, "fields")
                 _ => abort("expected method function kind")
               }
@@ -318,7 +340,7 @@ test "parse resource function with name: static func syntax" {
 ///|
 test "parse world imports" {
   let source = "package example:app;\n\ninterface api {\n  calc-add: func(a: s32, b: s32) -> s32;\n}\n\nworld app {\n  import example:math/operations;\n  import example:strings/utils;\n  export api;\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   debug_inspect(
     result,
     content=(
@@ -337,6 +359,7 @@ test "parse world imports" {
       #|              params: [{ name: "a", ty: S32 }, { name: "b", ty: S32 }],
       #|              result: Some(S32),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|        ],
@@ -364,6 +387,7 @@ test "parse world imports" {
       #|        exports: [Interface({ pkg: None, interface: "api" })],
       #|      },
       #|    ],
+      #|    packages: [],
       #|  },
       #|)
     ),
@@ -373,7 +397,7 @@ test "parse world imports" {
 ///|
 test "parse async function in interface" {
   let source = "package wasi:http;\n\ninterface client {\n  send: async func(request: string) -> result<string, string>;\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) => {
       assert_eq(wit_file.interfaces.length(), 1)
@@ -382,7 +406,7 @@ test "parse async function in interface" {
       let mut found_send = false
       for item in iface.items {
         match item {
-          InterfaceItem::Function(func) =>
+          @wit.InterfaceItem::Function(func) =>
             if func.name == "send" {
               found_send = true
               assert_eq(func.params.length(), 1)
@@ -400,14 +424,14 @@ test "parse async function in interface" {
 ///|
 test "parse async function with trailing comma params" {
   let source = "package wasi:clocks;\n\ninterface monotonic-clock {\n  wait-until: async func(\n    when: u64,\n  );\n  wait-for: async func(\n    how-long: u64,\n  );\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) => {
       assert_eq(wit_file.interfaces.length(), 1)
       let iface = wit_file.interfaces[0]
       assert_eq(iface.items.length(), 2)
       match iface.items[0] {
-        InterfaceItem::Function(func) => {
+        @wit.InterfaceItem::Function(func) => {
           assert_eq(func.name, "wait-until")
           assert_eq(func.params.length(), 1)
           assert_eq(func.params[0].name, "when")
@@ -415,7 +439,7 @@ test "parse async function with trailing comma params" {
         _ => abort("expected function item")
       }
       match iface.items[1] {
-        InterfaceItem::Function(func) => {
+        @wit.InterfaceItem::Function(func) => {
           assert_eq(func.name, "wait-for")
           assert_eq(func.params.length(), 1)
           assert_eq(func.params[0].name, "how-long")
@@ -430,33 +454,34 @@ test "parse async function with trailing comma params" {
 ///|
 test "parse stream/future and bare result types" {
   let source = "package wasi:http;\n\ninterface io {\n  reset: func() -> result;\n  send: async func(body: option<stream<u8>>) -> future<result<_, string>>;\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) => {
       assert_eq(wit_file.interfaces.length(), 1)
       let iface = wit_file.interfaces[0]
       assert_eq(iface.items.length(), 2)
       match iface.items[0] {
-        InterfaceItem::Function(func) =>
+        @wit.InterfaceItem::Function(func) =>
           match func.result {
-            Some(TypeExpr::Result(TypeExpr::Tuple(_), Some(TypeExpr::Tuple(_)))) =>
-              ()
+            Some(@wit.TypeExpr::Result(None, None)) => ()
             _ =>
               abort("expected bare result to parse as result<tuple<>, tuple<>>")
           }
         _ => abort("expected reset function")
       }
       match iface.items[1] {
-        InterfaceItem::Function(func) => {
+        @wit.InterfaceItem::Function(func) => {
           assert_eq(func.params.length(), 1)
           match func.params[0].ty {
-            TypeExpr::Option(TypeExpr::Stream(TypeExpr::U8)) => ()
+            @wit.TypeExpr::Option(
+              @wit.TypeExpr::Stream(Some(@wit.TypeExpr::U8))
+            ) => ()
             _ => abort("expected option<stream<u8>> parameter")
           }
           match func.result {
             Some(
-              TypeExpr::Future(
-                TypeExpr::Result(TypeExpr::Tuple(_), Some(TypeExpr::String_))
+              @wit.TypeExpr::Future(
+                Some(@wit.TypeExpr::Result(None, Some(@wit.TypeExpr::String_)))
               )
             ) => ()
             _ => abort("expected future<result<_, string>> result")
@@ -472,7 +497,7 @@ test "parse stream/future and bare result types" {
 ///|
 test "resolve async function in world export" {
   let source = "package wasi:http;\n\nworld service {\n  export handle: async func() -> result<string, string>;\n}\n"
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   match result {
     Ok(resolved) => {
       assert_eq(resolved.worlds.length(), 1)
@@ -486,7 +511,7 @@ test "resolve async function in world export" {
 ///|
 test "parse prerelease package version" {
   let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\ninterface ping {\n  ping: func();\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) =>
       match wit_file.pkg {
@@ -504,7 +529,7 @@ test "parse prerelease package version" {
 ///|
 test "parse gates and includes in world" {
   let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\n@since(version = 0.3.0-rc-2026-02-05)\nworld service {\n  @since(version = 0.3.0-rc-2026-02-05)\n  include wasi:clocks/imports@0.3.0-rc-2026-02-05;\n  include wasi:clocks/imports@0.3.0-rc-2026-02-05 with { monotonic-clock as clocks-monotonic-clock };\n  @since(version = 0.3.0-rc-2026-02-05)\n  import wasi:cli/stdout@0.3.0-rc-2026-02-05;\n  export handler: interface {\n    handle: async func();\n  }\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) => {
       assert_eq(wit_file.worlds.length(), 1)
@@ -514,7 +539,7 @@ test "parse gates and includes in world" {
       let mut has_stdout_import = false
       for item in world.imports {
         match item {
-          WorldItem::Interface(path) =>
+          @wit.WorldItem::Interface(path) =>
             if path.interface == "stdout" {
               has_stdout_import = true
               match path.pkg {
@@ -532,12 +557,12 @@ test "parse gates and includes in world" {
       assert_true(has_stdout_import)
       assert_eq(world.exports.length(), 1)
       match world.exports[0] {
-        WorldItem::InlineInterface(inline) => {
+        @wit.WorldItem::InlineInterface(inline) => {
           assert_eq(inline.name, "handler")
           let mut has_handle = false
           for item in inline.items {
             match item {
-              InterfaceItem::Function(func) =>
+              @wit.InterfaceItem::Function(func) =>
                 if func.name == "handle" {
                   has_handle = true
                 }
@@ -556,7 +581,7 @@ test "parse gates and includes in world" {
 ///|
 test "parse package-qualified use declaration in interface" {
   let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\ninterface client {\n  use wasi:clocks/types@0.3.0-rc-2026-02-05.{duration};\n  ping: func(timeout: duration);\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) => {
       assert_eq(wit_file.interfaces.length(), 1)
@@ -564,7 +589,7 @@ test "parse package-qualified use declaration in interface" {
       assert_eq(iface.name, "client")
       assert_eq(iface.items.length(), 2)
       match iface.items[0] {
-        InterfaceItem::Use(decl) => {
+        @wit.InterfaceItem::Use(decl) => {
           assert_eq(decl.names.length(), 1)
           assert_eq(decl.names[0], "duration")
           assert_eq(decl.from.interface, "types")
@@ -587,7 +612,7 @@ test "parse package-qualified use declaration in interface" {
 ///|
 test "resolve package-qualified use declaration" {
   let source = "package local:sample;\n\ninterface types {\n  type duration = u64;\n}\n\ninterface client {\n  use local:sample/types.{duration};\n  ping: func(timeout: duration) -> duration;\n}\n\nworld sample {\n  export client;\n}\n"
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   match result {
     Ok(resolved) => {
       let client = match find_interface_by_name(resolved.interfaces, "client") {
@@ -604,11 +629,11 @@ test "resolve package-qualified use declaration" {
       }
       assert_eq(ping.params.length(), 1)
       match ping.params[0].1 {
-        RType::Id(id) => assert_eq(id, duration_id)
+        @wit.RType::Id(id) => assert_eq(id, duration_id)
         _ => abort("expected ping param to resolve imported duration")
       }
       match ping.result {
-        Some(RType::Id(id)) => assert_eq(id, duration_id)
+        Some(@wit.RType::Id(id)) => assert_eq(id, duration_id)
         _ => abort("expected ping result to resolve imported duration")
       }
     }
@@ -619,7 +644,7 @@ test "resolve package-qualified use declaration" {
 ///|
 test "resolve_interface_infos returns imported type owner metadata" {
   let source = "package local:sample;\n\ninterface types {\n  type duration = u64;\n}\n\ninterface client {\n  use local:sample/types.{duration};\n  ping: func(timeout: duration) -> duration;\n}\n\nworld sample {\n  export client;\n}\n"
-  let result = resolve_interface_infos(source)
+  let result = @wit.resolve_interface_infos(source)
   match result {
     Ok(infos) => {
       let client = match find_resolved_interface_info_by_name(infos, "client") {
@@ -659,7 +684,7 @@ test "resolve_interface_infos returns imported type owner metadata" {
 ///|
 test "resolve world with gate/include syntax" {
   let source = "package wasi:http@0.3.0-rc-2026-02-05;\n\n@since(version = 0.3.0-rc-2026-02-05)\nworld base {\n  import ping: func() -> u32;\n}\n\n@since(version = 0.3.0-rc-2026-02-05)\nworld service {\n  include base;\n  import pong: func() -> u32;\n}\n"
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   match result {
     Ok(resolved) => {
       let world = match find_world_by_name(resolved.worlds, "service") {
@@ -676,7 +701,7 @@ test "resolve world with gate/include syntax" {
 ///|
 test "resolve include merges imports and exports" {
   let source = "package local:inc;\n\nworld base {\n  import ping: func() -> u32;\n  export pong: func() -> u32;\n}\n\nworld derived {\n  include base;\n}\n"
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   match result {
     Ok(resolved) => {
       let derived = match find_world_by_name(resolved.worlds, "derived") {
@@ -693,7 +718,7 @@ test "resolve include merges imports and exports" {
 ///|
 test "resolve include with rename remaps names" {
   let source = "package local:inc;\n\nworld base {\n  import ping: func() -> u32;\n  export pong: func() -> u32;\n}\n\nworld renamed {\n  include base with { ping as ping-renamed, pong as pong-renamed };\n}\n"
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   match result {
     Ok(resolved) => {
       let renamed = match find_world_by_name(resolved.worlds, "renamed") {
@@ -712,7 +737,7 @@ test "resolve include with rename remaps names" {
 ///|
 test "resolve hello" {
   let source = "package local:hello;\n\ninterface greet {\n  greet: func(name: string) -> string;\n}\n\nworld hello {\n  export greet;\n}\n"
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   debug_inspect(
     result,
     content=(
@@ -723,7 +748,7 @@ test "resolve hello" {
       #|        name: "hello",
       #|        docs: None,
       #|        imports: {},
-      #|        exports: { "interface-0": Interface({ id: 0 }) },
+      #|        exports: { "interface-0": Interface({ id: 0, external_id: None }) },
       #|        pkg: Some(0),
       #|      },
       #|    ],
@@ -738,6 +763,7 @@ test "resolve hello" {
       #|            params: [("name", String_)],
       #|            result: Some(String_),
       #|            docs: None,
+      #|            external_id: None,
       #|          },
       #|        },
       #|        types: {},
@@ -761,7 +787,7 @@ test "resolve hello" {
 ///|
 test "resolve resource" {
   let source = "package local:resource-test;\n\ninterface blob-store {\n  resource blob {\n    constructor(data: list<u8>);\n    size: func() -> u32;\n  }\n\n  create-blob: func(data: list<u8>) -> own<blob>;\n}\n\nworld resource-world {\n  export blob-store;\n}\n"
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   debug_inspect(
     result,
     content=(
@@ -772,7 +798,7 @@ test "resolve resource" {
       #|        name: "resource-world",
       #|        docs: None,
       #|        imports: {},
-      #|        exports: { "interface-0": Interface({ id: 0 }) },
+      #|        exports: { "interface-0": Interface({ id: 0, external_id: None }) },
       #|        pkg: Some(0),
       #|      },
       #|    ],
@@ -787,6 +813,7 @@ test "resolve resource" {
       #|            params: [("data", Id(1))],
       #|            result: Some(Id(3)),
       #|            docs: None,
+      #|            external_id: None,
       #|          },
       #|          "[method]blob.size": {
       #|            name: "[method]blob.size",
@@ -794,6 +821,7 @@ test "resolve resource" {
       #|            params: [("self", Id(2))],
       #|            result: Some(U32),
       #|            docs: None,
+      #|            external_id: None,
       #|          },
       #|          "create-blob": {
       #|            name: "create-blob",
@@ -801,6 +829,7 @@ test "resolve resource" {
       #|            params: [("data", Id(1))],
       #|            result: Some(Id(3)),
       #|            docs: None,
+      #|            external_id: None,
       #|          },
       #|        },
       #|        types: { "blob": 0 },
@@ -813,10 +842,29 @@ test "resolve resource" {
       #|        kind: Resource,
       #|        owner: Interface(0),
       #|        docs: None,
+      #|        external_id: None,
       #|      },
-      #|      { name: None, kind: List(U8), owner: None, docs: None },
-      #|      { name: None, kind: Handle(Borrow(0)), owner: None, docs: None },
-      #|      { name: None, kind: Handle(Own(0)), owner: None, docs: None },
+      #|      {
+      #|        name: None,
+      #|        kind: List(U8),
+      #|        owner: None,
+      #|        docs: None,
+      #|        external_id: None,
+      #|      },
+      #|      {
+      #|        name: None,
+      #|        kind: Handle(Borrow(0)),
+      #|        owner: None,
+      #|        docs: None,
+      #|        external_id: None,
+      #|      },
+      #|      {
+      #|        name: None,
+      #|        kind: Handle(Own(0)),
+      #|        owner: None,
+      #|        docs: None,
+      #|        external_id: None,
+      #|      },
       #|    ],
       #|    packages: [
       #|      {
@@ -834,7 +882,7 @@ test "resolve resource" {
 ///|
 test "resolve world function types" {
   let source = "package local:world-func;\n\nworld app {\n  record point {\n    x: s32,\n    y: s32,\n  }\n\n  resource blob {\n    constructor(data: list<u8>);\n    size: func() -> u32;\n  }\n\n  export use-point: func(p: point) -> point;\n  export take-borrow: func(b: borrow<blob>) -> u32;\n  export make-own: func() -> own<blob>;\n}\n"
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   debug_inspect(
     result,
     content=(
@@ -854,6 +902,7 @@ test "resolve world function types" {
       #|              params: [("data", Id(2))],
       #|              result: Some(Id(4)),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          "[method]blob.size": Function(
@@ -863,6 +912,7 @@ test "resolve world function types" {
       #|              params: [("self", Id(3))],
       #|              result: Some(U32),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|        },
@@ -874,6 +924,7 @@ test "resolve world function types" {
       #|              params: [("p", Id(0))],
       #|              result: Some(Id(0)),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          "take-borrow": Function(
@@ -883,6 +934,7 @@ test "resolve world function types" {
       #|              params: [("b", Id(3))],
       #|              result: Some(U32),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|          "make-own": Function(
@@ -892,6 +944,7 @@ test "resolve world function types" {
       #|              params: [],
       #|              result: Some(Id(4)),
       #|              docs: None,
+      #|              external_id: None,
       #|            },
       #|          ),
       #|        },
@@ -905,11 +958,36 @@ test "resolve world function types" {
       #|        kind: Record([{ name: "x", field_type: S32 }, { name: "y", field_type: S32 }]),
       #|        owner: World(0),
       #|        docs: None,
+      #|        external_id: None,
       #|      },
-      #|      { name: Some("blob"), kind: Resource, owner: World(0), docs: None },
-      #|      { name: None, kind: List(U8), owner: None, docs: None },
-      #|      { name: None, kind: Handle(Borrow(1)), owner: None, docs: None },
-      #|      { name: None, kind: Handle(Own(1)), owner: None, docs: None },
+      #|      {
+      #|        name: Some("blob"),
+      #|        kind: Resource,
+      #|        owner: World(0),
+      #|        docs: None,
+      #|        external_id: None,
+      #|      },
+      #|      {
+      #|        name: None,
+      #|        kind: List(U8),
+      #|        owner: None,
+      #|        docs: None,
+      #|        external_id: None,
+      #|      },
+      #|      {
+      #|        name: None,
+      #|        kind: Handle(Borrow(1)),
+      #|        owner: None,
+      #|        docs: None,
+      #|        external_id: None,
+      #|      },
+      #|      {
+      #|        name: None,
+      #|        kind: Handle(Own(1)),
+      #|        owner: None,
+      #|        docs: None,
+      #|        external_id: None,
+      #|      },
       #|    ],
       #|    packages: [
       #|      {
@@ -927,7 +1005,7 @@ test "resolve world function types" {
 ///|
 test "resolve world inline interface" {
   let source = "package local:inline;\n\nworld app {\n  import foo: interface {\n    foo: func(x: s32) -> s32;\n  }\n\n  export bar: interface {\n    bar: func(s: string);\n  }\n}\n"
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   debug_inspect(
     result,
     content=(
@@ -937,8 +1015,8 @@ test "resolve world inline interface" {
       #|      {
       #|        name: "app",
       #|        docs: None,
-      #|        imports: { "foo": Interface({ id: 0 }) },
-      #|        exports: { "bar": Interface({ id: 1 }) },
+      #|        imports: { "foo": Interface({ id: 0, external_id: None }) },
+      #|        exports: { "bar": Interface({ id: 1, external_id: None }) },
       #|        pkg: Some(0),
       #|      },
       #|    ],
@@ -953,6 +1031,7 @@ test "resolve world inline interface" {
       #|            params: [("x", S32)],
       #|            result: Some(S32),
       #|            docs: None,
+      #|            external_id: None,
       #|          },
       #|        },
       #|        types: {},
@@ -968,6 +1047,7 @@ test "resolve world inline interface" {
       #|            params: [("s", String_)],
       #|            result: None,
       #|            docs: None,
+      #|            external_id: None,
       #|          },
       #|        },
       #|        types: {},
@@ -991,17 +1071,17 @@ test "resolve world inline interface" {
 ///|
 test "parse bare resource declaration" {
   let source = "package wasi:cli;\n\ninterface terminal-input {\n  resource terminal-input;\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) => {
       assert_eq(wit_file.interfaces.length(), 1)
       let iface = wit_file.interfaces[0]
       assert_eq(iface.items.length(), 1)
       match iface.items[0] {
-        InterfaceItem::TypeDef(type_def) => {
+        @wit.InterfaceItem::TypeDef(type_def) => {
           assert_eq(type_def.name, "terminal-input")
           match type_def.kind {
-            TypeDefKind::Resource(resource) =>
+            @wit.TypeDefKind::Resource(resource) =>
               assert_eq(resource.funcs.length(), 0)
             _ => abort("expected resource type")
           }
@@ -1042,7 +1122,7 @@ test "resolve intra-package use with resource type" {
     #|  export streams;
     #|}
     #|
-  let result = resolve(source)
+  let result = @wit.resolve(source)
   match result {
     Ok(resolved) => {
       let streams = match
@@ -1093,11 +1173,11 @@ test "resolve cross-package use with re-exported type" {
     #|  export types;
     #|}
     #|
-  let io_ast = match parse(io_source) {
+  let io_ast = match @wit.parse(io_source) {
     Ok(ast) => ast
     Err(err) => abort("parse io failed: " + err.to_string())
   }
-  let fs_ast = match parse(fs_source) {
+  let fs_ast = match @wit.parse(fs_source) {
     Ok(ast) => ast
     Err(err) => abort("parse fs failed: " + err.to_string())
   }
@@ -1105,7 +1185,7 @@ test "resolve cross-package use with re-exported type" {
   // We need to test via resolve_path or a similar mechanism
   // For now, test via the internal resolve_asts function
   // Order matters: fs_ast before io_ast to test dependency resolution
-  let result = resolve_multi([fs_ast, io_ast])
+  let result = @wit.resolve_multi([fs_ast, io_ast])
   match result {
     Ok(resolved) => {
       let types = match find_interface_by_name(resolved.interfaces, "types") {
@@ -1121,7 +1201,7 @@ test "resolve cross-package use with re-exported type" {
 
 ///|
 test "tokenize basic" {
-  let result = tokenize("package local:hello;")
+  let result = @wit.tokenize("package local:hello;")
   debug_inspect(
     result,
     content=(
@@ -1141,7 +1221,7 @@ test "tokenize basic" {
 
 ///|
 test "tokenize percent-escaped keyword" {
-  let result = tokenize("%type: descriptor-type,")
+  let result = @wit.tokenize("%type: descriptor-type,")
   debug_inspect(
     result,
     content=(
@@ -1161,16 +1241,16 @@ test "tokenize percent-escaped keyword" {
 ///|
 test "parse record with percent-escaped field name" {
   let source = "package wasi:fs;\n\ninterface types {\n  record descriptor-stat {\n    %type: string,\n    name: string,\n  }\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) => {
       assert_eq(wit_file.interfaces.length(), 1)
       let iface = wit_file.interfaces[0]
       assert_eq(iface.items.length(), 1)
       match iface.items[0] {
-        InterfaceItem::TypeDef(type_def) =>
+        @wit.InterfaceItem::TypeDef(type_def) =>
           match type_def.kind {
-            TypeDefKind::Record(fields) => {
+            @wit.TypeDefKind::Record(fields) => {
               assert_eq(fields.length(), 2)
               assert_eq(fields[0].name, "type")
               assert_eq(fields[1].name, "name")
@@ -1187,14 +1267,14 @@ test "parse record with percent-escaped field name" {
 ///|
 test "parse func with percent-escaped param name" {
   let source = "package wasi:fs;\n\ninterface types {\n  open-at: func(%flags: string) -> string;\n}\n"
-  let result = parse(source)
+  let result = @wit.parse(source)
   match result {
     Ok(wit_file) => {
       assert_eq(wit_file.interfaces.length(), 1)
       let iface = wit_file.interfaces[0]
       assert_eq(iface.items.length(), 1)
       match iface.items[0] {
-        InterfaceItem::Function(func) => {
+        @wit.InterfaceItem::Function(func) => {
           assert_eq(func.name, "open-at")
           assert_eq(func.params.length(), 1)
           assert_eq(func.params[0].name, "flags")

@@ -30,6 +30,11 @@ pub fn tokenize(String) -> Result[Array[Token], ParseError]
 pub suberror ParseError {
   Message(String, Int32)
 }
+pub fn ParseError::equal(Self, Self) -> Bool
+pub fn ParseError::not_equal(Self, Self) -> Bool
+pub fn ParseError::output(Self, &Logger) -> Unit
+pub fn ParseError::to_repr(Self) -> @debug.Repr
+pub fn ParseError::to_string(Self) -> String
 pub impl Show for ParseError
 
 // Types and methods
@@ -38,6 +43,11 @@ pub struct Field {
   name : String
   ty : TypeExpr
 }
+pub fn Field::equal(Self, Self) -> Bool
+pub fn Field::not_equal(Self, Self) -> Bool
+pub fn Field::output(Self, &Logger) -> Unit
+pub fn Field::to_repr(Self) -> @debug.Repr
+pub fn Field::to_string(Self) -> String
 pub impl Show for Field
 
 #derive(Eq, @debug.Debug)
@@ -47,16 +57,36 @@ pub struct Function {
   params : Array[Param]
   result : TypeExpr?
   docs : String?
+  external_id : String?
 }
+pub fn Function::equal(Self, Self) -> Bool
+pub fn Function::not_equal(Self, Self) -> Bool
+pub fn Function::output(Self, &Logger) -> Unit
+pub fn Function::to_repr(Self) -> @debug.Repr
+pub fn Function::to_string(Self) -> String
 pub impl Show for Function
 
 #derive(Eq, @debug.Debug)
 pub enum FunctionKind {
   Freestanding
+  AsyncFreestanding
+  Getter
+  Setter
   Constructor(String)
   Method(String)
+  AsyncMethod(String)
+  MethodGetter(String)
+  MethodSetter(String)
   Static(String)
+  AsyncStatic(String)
+  StaticGetter(String)
+  StaticSetter(String)
 }
+pub fn FunctionKind::equal(Self, Self) -> Bool
+pub fn FunctionKind::not_equal(Self, Self) -> Bool
+pub fn FunctionKind::output(Self, &Logger) -> Unit
+pub fn FunctionKind::to_repr(Self) -> @debug.Repr
+pub fn FunctionKind::to_string(Self) -> String
 pub impl Show for FunctionKind
 
 #derive(Eq, @debug.Debug)
@@ -64,6 +94,11 @@ pub struct IncludeDecl {
   path : UsePath
   renames : Array[IncludeRename]
 }
+pub fn IncludeDecl::equal(Self, Self) -> Bool
+pub fn IncludeDecl::not_equal(Self, Self) -> Bool
+pub fn IncludeDecl::output(Self, &Logger) -> Unit
+pub fn IncludeDecl::to_repr(Self) -> @debug.Repr
+pub fn IncludeDecl::to_string(Self) -> String
 pub impl Show for IncludeDecl
 
 #derive(Eq, @debug.Debug)
@@ -71,6 +106,11 @@ pub struct IncludeRename {
   from : String
   to : String
 }
+pub fn IncludeRename::equal(Self, Self) -> Bool
+pub fn IncludeRename::not_equal(Self, Self) -> Bool
+pub fn IncludeRename::output(Self, &Logger) -> Unit
+pub fn IncludeRename::to_repr(Self) -> @debug.Repr
+pub fn IncludeRename::to_string(Self) -> String
 pub impl Show for IncludeRename
 
 #derive(Eq, @debug.Debug)
@@ -79,6 +119,11 @@ pub struct InlineInterface {
   docs : String?
   items : Array[InterfaceItem]
 }
+pub fn InlineInterface::equal(Self, Self) -> Bool
+pub fn InlineInterface::not_equal(Self, Self) -> Bool
+pub fn InlineInterface::output(Self, &Logger) -> Unit
+pub fn InlineInterface::to_repr(Self) -> @debug.Repr
+pub fn InlineInterface::to_string(Self) -> String
 pub impl Show for InlineInterface
 
 #derive(Eq, @debug.Debug)
@@ -87,6 +132,11 @@ pub struct Interface {
   docs : String?
   items : Array[InterfaceItem]
 }
+pub fn Interface::equal(Self, Self) -> Bool
+pub fn Interface::not_equal(Self, Self) -> Bool
+pub fn Interface::output(Self, &Logger) -> Unit
+pub fn Interface::to_repr(Self) -> @debug.Repr
+pub fn Interface::to_string(Self) -> String
 pub impl Show for Interface
 
 #derive(Eq, @debug.Debug)
@@ -95,6 +145,11 @@ pub enum InterfaceItem {
   TypeDef(TypeDef)
   Function(Function)
 }
+pub fn InterfaceItem::equal(Self, Self) -> Bool
+pub fn InterfaceItem::not_equal(Self, Self) -> Bool
+pub fn InterfaceItem::output(Self, &Logger) -> Unit
+pub fn InterfaceItem::to_repr(Self) -> @debug.Repr
+pub fn InterfaceItem::to_string(Self) -> String
 pub impl Show for InterfaceItem
 
 #derive(Eq, @debug.Debug)
@@ -103,6 +158,11 @@ pub struct PackageName {
   name : String
   version : String?
 }
+pub fn PackageName::equal(Self, Self) -> Bool
+pub fn PackageName::not_equal(Self, Self) -> Bool
+pub fn PackageName::output(Self, &Logger) -> Unit
+pub fn PackageName::to_repr(Self) -> @debug.Repr
+pub fn PackageName::to_string(Self) -> String
 pub impl Show for PackageName
 
 #derive(Eq, @debug.Debug)
@@ -110,6 +170,11 @@ pub struct Param {
   name : String
   ty : TypeExpr
 }
+pub fn Param::equal(Self, Self) -> Bool
+pub fn Param::not_equal(Self, Self) -> Bool
+pub fn Param::output(Self, &Logger) -> Unit
+pub fn Param::to_repr(Self) -> @debug.Repr
+pub fn Param::to_string(Self) -> String
 pub impl Show for Param
 
 #derive(Eq, @debug.Debug)
@@ -119,17 +184,39 @@ pub struct RFunction {
   params : Array[(String, RType)]
   result : RType?
   docs : String?
+  external_id : String?
 }
+pub fn RFunction::equal(Self, Self) -> Bool
+pub fn RFunction::not_equal(Self, Self) -> Bool
+pub fn RFunction::output(Self, &Logger) -> Unit
+pub fn RFunction::to_json(Self) -> @json.Json
+pub fn RFunction::to_repr(Self) -> @debug.Repr
+pub fn RFunction::to_string(Self) -> String
 pub impl Show for RFunction
 pub impl @json.ToJson for RFunction
 
 #derive(Eq, @debug.Debug)
 pub enum RFunctionKind {
   Freestanding
+  AsyncFreestanding
+  Getter
+  Setter
   Constructor(Int32)
   Method(Int32)
+  AsyncMethod(Int32)
+  MethodGetter(Int32)
+  MethodSetter(Int32)
   Static(Int32)
+  AsyncStatic(Int32)
+  StaticGetter(Int32)
+  StaticSetter(Int32)
 }
+pub fn RFunctionKind::equal(Self, Self) -> Bool
+pub fn RFunctionKind::not_equal(Self, Self) -> Bool
+pub fn RFunctionKind::output(Self, &Logger) -> Unit
+pub fn RFunctionKind::to_json(Self) -> @json.Json
+pub fn RFunctionKind::to_repr(Self) -> @debug.Repr
+pub fn RFunctionKind::to_string(Self) -> String
 pub impl Show for RFunctionKind
 pub impl @json.ToJson for RFunctionKind
 
@@ -138,6 +225,12 @@ pub enum RHandleKind {
   Own(Int32)
   Borrow(Int32)
 }
+pub fn RHandleKind::equal(Self, Self) -> Bool
+pub fn RHandleKind::not_equal(Self, Self) -> Bool
+pub fn RHandleKind::output(Self, &Logger) -> Unit
+pub fn RHandleKind::to_json(Self) -> @json.Json
+pub fn RHandleKind::to_repr(Self) -> @debug.Repr
+pub fn RHandleKind::to_string(Self) -> String
 pub impl Show for RHandleKind
 pub impl @json.ToJson for RHandleKind
 
@@ -149,13 +242,26 @@ pub struct RInterface {
   types : Map[String, Int32]
   pkg : Int32?
 }
+pub fn RInterface::equal(Self, Self) -> Bool
+pub fn RInterface::not_equal(Self, Self) -> Bool
+pub fn RInterface::output(Self, &Logger) -> Unit
+pub fn RInterface::to_json(Self) -> @json.Json
+pub fn RInterface::to_repr(Self) -> @debug.Repr
+pub fn RInterface::to_string(Self) -> String
 pub impl Show for RInterface
 pub impl @json.ToJson for RInterface
 
 #derive(Eq, @debug.Debug)
 pub struct RInterfaceRef {
   id : Int32
+  external_id : String?
 }
+pub fn RInterfaceRef::equal(Self, Self) -> Bool
+pub fn RInterfaceRef::not_equal(Self, Self) -> Bool
+pub fn RInterfaceRef::output(Self, &Logger) -> Unit
+pub fn RInterfaceRef::to_json(Self) -> @json.Json
+pub fn RInterfaceRef::to_repr(Self) -> @debug.Repr
+pub fn RInterfaceRef::to_string(Self) -> String
 pub impl Show for RInterfaceRef
 pub impl @json.ToJson for RInterfaceRef
 
@@ -165,6 +271,12 @@ pub struct RPackage {
   interfaces : Map[String, Int32]
   worlds : Map[String, Int32]
 }
+pub fn RPackage::equal(Self, Self) -> Bool
+pub fn RPackage::not_equal(Self, Self) -> Bool
+pub fn RPackage::output(Self, &Logger) -> Unit
+pub fn RPackage::to_json(Self) -> @json.Json
+pub fn RPackage::to_repr(Self) -> @debug.Repr
+pub fn RPackage::to_string(Self) -> String
 pub impl Show for RPackage
 pub impl @json.ToJson for RPackage
 
@@ -174,6 +286,12 @@ pub struct RPackageName {
   name : String
   version : String?
 }
+pub fn RPackageName::equal(Self, Self) -> Bool
+pub fn RPackageName::not_equal(Self, Self) -> Bool
+pub fn RPackageName::output(Self, &Logger) -> Unit
+pub fn RPackageName::to_json(Self) -> @json.Json
+pub fn RPackageName::to_repr(Self) -> @debug.Repr
+pub fn RPackageName::to_string(Self) -> String
 pub impl Show for RPackageName
 pub impl @json.ToJson for RPackageName
 
@@ -182,6 +300,12 @@ pub struct RRecordField {
   name : String
   field_type : RType
 }
+pub fn RRecordField::equal(Self, Self) -> Bool
+pub fn RRecordField::not_equal(Self, Self) -> Bool
+pub fn RRecordField::output(Self, &Logger) -> Unit
+pub fn RRecordField::to_json(Self) -> @json.Json
+pub fn RRecordField::to_repr(Self) -> @debug.Repr
+pub fn RRecordField::to_string(Self) -> String
 pub impl Show for RRecordField
 pub impl @json.ToJson for RRecordField
 
@@ -200,8 +324,15 @@ pub enum RType {
   F64
   Char
   String_
+  ErrorContext
   Id(Int32)
 }
+pub fn RType::equal(Self, Self) -> Bool
+pub fn RType::not_equal(Self, Self) -> Bool
+pub fn RType::output(Self, &Logger) -> Unit
+pub fn RType::to_json(Self) -> @json.Json
+pub fn RType::to_repr(Self) -> @debug.Repr
+pub fn RType::to_string(Self) -> String
 pub impl Show for RType
 pub impl @json.ToJson for RType
 
@@ -211,7 +342,14 @@ pub struct RTypeDef {
   kind : RTypeKind
   owner : RTypeOwner
   docs : String?
+  external_id : String?
 }
+pub fn RTypeDef::equal(Self, Self) -> Bool
+pub fn RTypeDef::not_equal(Self, Self) -> Bool
+pub fn RTypeDef::output(Self, &Logger) -> Unit
+pub fn RTypeDef::to_json(Self) -> @json.Json
+pub fn RTypeDef::to_repr(Self) -> @debug.Repr
+pub fn RTypeDef::to_string(Self) -> String
 pub impl Show for RTypeDef
 pub impl @json.ToJson for RTypeDef
 
@@ -220,9 +358,11 @@ pub enum RTypeKind {
   Record(Array[RRecordField])
   Variant(Array[RVariantCase])
   List(RType)
+  FixedLengthList(RType, UInt32)
+  Map(RType, RType)
   Option(RType)
-  Future(RType)
-  Stream(RType)
+  Future(RType?)
+  Stream(RType?)
   Result(ok~ : RType?, err~ : RType?)
   Tuple(Array[RType])
   Flags(Array[String])
@@ -231,6 +371,12 @@ pub enum RTypeKind {
   Resource
   Handle(RHandleKind)
 }
+pub fn RTypeKind::equal(Self, Self) -> Bool
+pub fn RTypeKind::not_equal(Self, Self) -> Bool
+pub fn RTypeKind::output(Self, &Logger) -> Unit
+pub fn RTypeKind::to_json(Self) -> @json.Json
+pub fn RTypeKind::to_repr(Self) -> @debug.Repr
+pub fn RTypeKind::to_string(Self) -> String
 pub impl Show for RTypeKind
 pub impl @json.ToJson for RTypeKind
 
@@ -240,6 +386,12 @@ pub enum RTypeOwner {
   World(Int32)
   None
 }
+pub fn RTypeOwner::equal(Self, Self) -> Bool
+pub fn RTypeOwner::not_equal(Self, Self) -> Bool
+pub fn RTypeOwner::output(Self, &Logger) -> Unit
+pub fn RTypeOwner::to_json(Self) -> @json.Json
+pub fn RTypeOwner::to_repr(Self) -> @debug.Repr
+pub fn RTypeOwner::to_string(Self) -> String
 pub impl Show for RTypeOwner
 pub impl @json.ToJson for RTypeOwner
 
@@ -248,6 +400,12 @@ pub struct RVariantCase {
   name : String
   case_type : RType?
 }
+pub fn RVariantCase::equal(Self, Self) -> Bool
+pub fn RVariantCase::not_equal(Self, Self) -> Bool
+pub fn RVariantCase::output(Self, &Logger) -> Unit
+pub fn RVariantCase::to_json(Self) -> @json.Json
+pub fn RVariantCase::to_repr(Self) -> @debug.Repr
+pub fn RVariantCase::to_string(Self) -> String
 pub impl Show for RVariantCase
 pub impl @json.ToJson for RVariantCase
 
@@ -259,6 +417,12 @@ pub struct RWorld {
   exports : Map[String, RWorldItem]
   pkg : Int32?
 }
+pub fn RWorld::equal(Self, Self) -> Bool
+pub fn RWorld::not_equal(Self, Self) -> Bool
+pub fn RWorld::output(Self, &Logger) -> Unit
+pub fn RWorld::to_json(Self) -> @json.Json
+pub fn RWorld::to_repr(Self) -> @debug.Repr
+pub fn RWorld::to_string(Self) -> String
 pub impl Show for RWorld
 pub impl @json.ToJson for RWorld
 
@@ -268,6 +432,12 @@ pub enum RWorldItem {
   Function(RFunction)
   Type(Int32)
 }
+pub fn RWorldItem::equal(Self, Self) -> Bool
+pub fn RWorldItem::not_equal(Self, Self) -> Bool
+pub fn RWorldItem::output(Self, &Logger) -> Unit
+pub fn RWorldItem::to_json(Self) -> @json.Json
+pub fn RWorldItem::to_repr(Self) -> @debug.Repr
+pub fn RWorldItem::to_string(Self) -> String
 pub impl Show for RWorldItem
 pub impl @json.ToJson for RWorldItem
 
@@ -278,6 +448,12 @@ pub struct Resolve {
   types : Array[RTypeDef]
   packages : Array[RPackage]
 }
+pub fn Resolve::equal(Self, Self) -> Bool
+pub fn Resolve::not_equal(Self, Self) -> Bool
+pub fn Resolve::output(Self, &Logger) -> Unit
+pub fn Resolve::to_json(Self) -> @json.Json
+pub fn Resolve::to_repr(Self) -> @debug.Repr
+pub fn Resolve::to_string(Self) -> String
 pub impl Show for Resolve
 pub impl @json.ToJson for Resolve
 
@@ -286,6 +462,12 @@ pub struct ResolveInput {
   resolve : Resolve
   world_id : Int32
 }
+pub fn ResolveInput::equal(Self, Self) -> Bool
+pub fn ResolveInput::not_equal(Self, Self) -> Bool
+pub fn ResolveInput::output(Self, &Logger) -> Unit
+pub fn ResolveInput::to_json(Self) -> @json.Json
+pub fn ResolveInput::to_repr(Self) -> @debug.Repr
+pub fn ResolveInput::to_string(Self) -> String
 pub impl Show for ResolveInput
 pub impl @json.ToJson for ResolveInput
 
@@ -298,6 +480,11 @@ pub struct ResolvedInterfaceInfo {
   functions : Map[String, RFunction]
   types : Map[String, ResolvedTypeInfo]
 }
+pub fn ResolvedInterfaceInfo::equal(Self, Self) -> Bool
+pub fn ResolvedInterfaceInfo::not_equal(Self, Self) -> Bool
+pub fn ResolvedInterfaceInfo::output(Self, &Logger) -> Unit
+pub fn ResolvedInterfaceInfo::to_repr(Self) -> @debug.Repr
+pub fn ResolvedInterfaceInfo::to_string(Self) -> String
 pub impl Show for ResolvedInterfaceInfo
 
 #derive(Eq, @debug.Debug)
@@ -311,12 +498,22 @@ pub struct ResolvedTypeInfo {
   owner_interface : String?
   owner_world : String?
 }
+pub fn ResolvedTypeInfo::equal(Self, Self) -> Bool
+pub fn ResolvedTypeInfo::not_equal(Self, Self) -> Bool
+pub fn ResolvedTypeInfo::output(Self, &Logger) -> Unit
+pub fn ResolvedTypeInfo::to_repr(Self) -> @debug.Repr
+pub fn ResolvedTypeInfo::to_string(Self) -> String
 pub impl Show for ResolvedTypeInfo
 
 #derive(Eq, @debug.Debug)
 pub struct Resource {
   funcs : Array[Function]
 }
+pub fn Resource::equal(Self, Self) -> Bool
+pub fn Resource::not_equal(Self, Self) -> Bool
+pub fn Resource::output(Self, &Logger) -> Unit
+pub fn Resource::to_repr(Self) -> @debug.Repr
+pub fn Resource::to_string(Self) -> String
 pub impl Show for Resource
 
 #derive(Eq, @debug.Debug)
@@ -324,6 +521,11 @@ pub struct Token {
   token_type : TokenType
   offset : Int32
 }
+pub fn Token::equal(Self, Self) -> Bool
+pub fn Token::not_equal(Self, Self) -> Bool
+pub fn Token::output(Self, &Logger) -> Unit
+pub fn Token::to_repr(Self) -> @debug.Repr
+pub fn Token::to_string(Self) -> String
 pub impl Show for Token
 
 #derive(Eq, @debug.Debug)
@@ -336,6 +538,11 @@ pub enum TokenType {
   Doc(String)
   Eof
 }
+pub fn TokenType::equal(Self, Self) -> Bool
+pub fn TokenType::not_equal(Self, Self) -> Bool
+pub fn TokenType::output(Self, &Logger) -> Unit
+pub fn TokenType::to_repr(Self) -> @debug.Repr
+pub fn TokenType::to_string(Self) -> String
 pub impl Show for TokenType
 
 #derive(Eq, @debug.Debug)
@@ -343,7 +550,13 @@ pub struct TypeDef {
   name : String
   kind : TypeDefKind
   docs : String?
+  external_id : String?
 }
+pub fn TypeDef::equal(Self, Self) -> Bool
+pub fn TypeDef::not_equal(Self, Self) -> Bool
+pub fn TypeDef::output(Self, &Logger) -> Unit
+pub fn TypeDef::to_repr(Self) -> @debug.Repr
+pub fn TypeDef::to_string(Self) -> String
 pub impl Show for TypeDef
 
 #derive(Eq, @debug.Debug)
@@ -355,6 +568,11 @@ pub enum TypeDefKind {
   Alias(TypeExpr)
   Resource(Resource)
 }
+pub fn TypeDefKind::equal(Self, Self) -> Bool
+pub fn TypeDefKind::not_equal(Self, Self) -> Bool
+pub fn TypeDefKind::output(Self, &Logger) -> Unit
+pub fn TypeDefKind::to_repr(Self) -> @debug.Repr
+pub fn TypeDefKind::to_string(Self) -> String
 pub impl Show for TypeDefKind
 
 #derive(Eq, @debug.Debug)
@@ -372,23 +590,37 @@ pub enum TypeExpr {
   F64
   Char
   String_
+  ErrorContext
   Id(String)
   List(TypeExpr)
+  FixedLengthList(TypeExpr, UInt32)
+  Map(TypeExpr, TypeExpr)
   Option(TypeExpr)
-  Future(TypeExpr)
-  Stream(TypeExpr)
-  Result(TypeExpr, TypeExpr?)
+  Future(TypeExpr?)
+  Stream(TypeExpr?)
+  Result(TypeExpr?, TypeExpr?)
   Tuple(Array[TypeExpr])
   Own(String)
   Borrow(String)
 }
+pub fn TypeExpr::equal(Self, Self) -> Bool
+pub fn TypeExpr::not_equal(Self, Self) -> Bool
+pub fn TypeExpr::output(Self, &Logger) -> Unit
+pub fn TypeExpr::to_repr(Self) -> @debug.Repr
+pub fn TypeExpr::to_string(Self) -> String
 pub impl Show for TypeExpr
 
 #derive(Eq, @debug.Debug)
 pub struct UseDecl {
   from : UsePath
   names : Array[String]
+  renames : Array[IncludeRename]
 }
+pub fn UseDecl::equal(Self, Self) -> Bool
+pub fn UseDecl::not_equal(Self, Self) -> Bool
+pub fn UseDecl::output(Self, &Logger) -> Unit
+pub fn UseDecl::to_repr(Self) -> @debug.Repr
+pub fn UseDecl::to_string(Self) -> String
 pub impl Show for UseDecl
 
 #derive(Eq, @debug.Debug)
@@ -396,6 +628,11 @@ pub struct UsePath {
   pkg : PackageName?
   interface : String
 }
+pub fn UsePath::equal(Self, Self) -> Bool
+pub fn UsePath::not_equal(Self, Self) -> Bool
+pub fn UsePath::output(Self, &Logger) -> Unit
+pub fn UsePath::to_repr(Self) -> @debug.Repr
+pub fn UsePath::to_string(Self) -> String
 pub impl Show for UsePath
 
 #derive(Eq, @debug.Debug)
@@ -403,6 +640,11 @@ pub struct VariantCase {
   name : String
   ty : TypeExpr?
 }
+pub fn VariantCase::equal(Self, Self) -> Bool
+pub fn VariantCase::not_equal(Self, Self) -> Bool
+pub fn VariantCase::output(Self, &Logger) -> Unit
+pub fn VariantCase::to_repr(Self) -> @debug.Repr
+pub fn VariantCase::to_string(Self) -> String
 pub impl Show for VariantCase
 
 #derive(Eq, @debug.Debug)
@@ -410,7 +652,13 @@ pub struct WitFile {
   pkg : PackageName?
   interfaces : Array[Interface]
   worlds : Array[World]
+  packages : Array[WitFile]
 }
+pub fn WitFile::equal(Self, Self) -> Bool
+pub fn WitFile::not_equal(Self, Self) -> Bool
+pub fn WitFile::output(Self, &Logger) -> Unit
+pub fn WitFile::to_repr(Self) -> @debug.Repr
+pub fn WitFile::to_string(Self) -> String
 pub impl Show for WitFile
 
 #derive(Eq, @debug.Debug)
@@ -421,15 +669,28 @@ pub struct World {
   imports : Array[WorldItem]
   exports : Array[WorldItem]
 }
+pub fn World::equal(Self, Self) -> Bool
+pub fn World::not_equal(Self, Self) -> Bool
+pub fn World::output(Self, &Logger) -> Unit
+pub fn World::to_repr(Self) -> @debug.Repr
+pub fn World::to_string(Self) -> String
 pub impl Show for World
 
 #derive(Eq, @debug.Debug)
 pub enum WorldItem {
   Interface(UsePath)
+  NamedInterface(String, UsePath)
+  External(String, WorldItem)
   Function(Function)
   InlineInterface(InlineInterface)
   Include(IncludeDecl)
+  Use(UseDecl)
 }
+pub fn WorldItem::equal(Self, Self) -> Bool
+pub fn WorldItem::not_equal(Self, Self) -> Bool
+pub fn WorldItem::output(Self, &Logger) -> Unit
+pub fn WorldItem::to_repr(Self) -> @debug.Repr
+pub fn WorldItem::to_string(Self) -> String
 pub impl Show for WorldItem
 
 // Type aliases

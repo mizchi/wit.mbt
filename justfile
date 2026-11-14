@@ -36,3 +36,7 @@ clean:
 
 # Pre-release check
 release-check: fmt info check test
+
+# Compare type semantics and function JSON with wasm-tools (requires Python 3)
+spec-check:
+    python3 scripts/check-spec.py

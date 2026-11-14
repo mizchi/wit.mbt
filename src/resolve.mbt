@@ -1,323 +1,4 @@
 ///|
-/// Resolve type reference
-pub enum RType {
-  Bool
-  U8
-  U16
-  U32
-  U64
-  S8
-  S16
-  S32
-  S64
-  F32
-  F64
-  Char
-  String_
-  Id(Int)
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RType with fn to_string(self) {
-  repr(self)
-}
-
-///|
-/// Function kind
-pub enum RFunctionKind {
-  Freestanding
-  Constructor(Int)
-  Method(Int)
-  Static(Int)
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RFunctionKind with fn to_string(self) {
-  repr(self)
-}
-
-///|
-/// Function definition
-pub struct RFunction {
-  name : String
-  kind : RFunctionKind
-  params : Array[(String, RType)]
-  result : RType?
-  docs : String?
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RFunction with fn to_string(self) {
-  repr(self)
-}
-
-///|
-/// World item
-pub enum RWorldItem {
-  Interface(RInterfaceRef)
-  Function(RFunction)
-  Type(Int)
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RWorldItem with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct RInterfaceRef {
-  id : Int
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RInterfaceRef with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct RInterface {
-  name : String?
-  docs : String?
-  functions : Map[String, RFunction]
-  types : Map[String, Int]
-  pkg : Int?
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RInterface with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct RWorld {
-  name : String
-  docs : String?
-  imports : Map[String, RWorldItem]
-  exports : Map[String, RWorldItem]
-  pkg : Int?
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RWorld with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct RPackageName {
-  ns : String
-  name : String
-  version : String?
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RPackageName with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct RPackage {
-  name : RPackageName
-  interfaces : Map[String, Int]
-  worlds : Map[String, Int]
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RPackage with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub enum RTypeOwner {
-  Interface(Int)
-  World(Int)
-  None
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RTypeOwner with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct RRecordField {
-  name : String
-  field_type : RType
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RRecordField with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct RVariantCase {
-  name : String
-  case_type : RType?
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RVariantCase with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub enum RHandleKind {
-  Own(Int)
-  Borrow(Int)
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RHandleKind with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub enum RTypeKind {
-  Record(Array[RRecordField])
-  Variant(Array[RVariantCase])
-  List(RType)
-  Option(RType)
-  Future(RType)
-  Stream(RType)
-  Result(ok~ : RType?, err~ : RType?)
-  Tuple(Array[RType])
-  Flags(Array[String])
-  Enum(Array[String])
-  Alias(RType)
-  Resource
-  Handle(RHandleKind)
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RTypeKind with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct RTypeDef {
-  name : String?
-  kind : RTypeKind
-  owner : RTypeOwner
-  docs : String?
-} derive(Eq, Debug)
-
-///|
-pub impl Show for RTypeDef with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct Resolve {
-  worlds : Array[RWorld]
-  interfaces : Array[RInterface]
-  types : Array[RTypeDef]
-  packages : Array[RPackage]
-} derive(Eq, Debug)
-
-///|
-pub impl Show for Resolve with fn to_string(self) {
-  repr(self)
-}
-
-///|
-pub struct ResolveInput {
-  resolve : Resolve
-  world_id : Int
-} derive(Eq, Debug)
-
-///|
-pub impl Show for ResolveInput with fn to_string(self) {
-  repr(self)
-}
-
-///|
-fn json_number(value : Int) -> Json {
-  Json::number(value.to_double())
-}
-
-///|
-fn json_string(value : String) -> Json {
-  Json::string(value)
-}
-
-///|
-fn[T : ToJson] json_option(value : T?) -> Json {
-  match value {
-    Option::Some(v) => v.to_json()
-    Option::None => Json::null()
-  }
-}
-
-///|
-fn json_docs(contents : String) -> Json {
-  Json::object({ "contents": json_string(contents) })
-}
-
-///|
-fn package_name_string(pkg : RPackageName) -> String {
-  match pkg.version {
-    Option::Some(v) => pkg.ns + ":" + pkg.name + "@" + v
-    Option::None => pkg.ns + ":" + pkg.name
-  }
-}
-
-///|
-fn sort_strings_for_json(items : Array[String]) -> Unit {
-  let len = items.length()
-  if len < 2 {
-    return
-  }
-  for i in 1..<len {
-    let key = items[i]
-    let mut j = i - 1
-    while j >= 0 && string_lex_compare(items[j], key) > 0 {
-      items[j + 1] = items[j]
-      j = j - 1
-    }
-    items[j + 1] = key
-  }
-}
-
-///|
-fn string_lex_compare(a : String, b : String) -> Int {
-  let a_chars = a.to_array()
-  let b_chars = b.to_array()
-  let a_len = a_chars.length()
-  let b_len = b_chars.length()
-  let min_len = if a_len < b_len { a_len } else { b_len }
-  for i in 0..<min_len {
-    let cmp = a_chars[i].compare(b_chars[i])
-    if cmp != 0 {
-      return cmp
-    }
-  }
-  if a_len < b_len {
-    -1
-  } else if a_len > b_len {
-    1
-  } else {
-    0
-  }
-}
-
-///|
-fn[T : ToJson] map_sorted_to_json(items : Map[String, T]) -> Json {
-  let keys : Array[String] = []
-  for key, _ in items {
-    keys.push(key)
-  }
-  sort_strings_for_json(keys)
-  let result : Map[String, Json] = Map([])
-  for key in keys {
-    match items.get(key) {
-      Option::Some(value) => result.set(key, value.to_json())
-      Option::None => ()
-    }
-  }
-  Json::object(result)
-}
-
-///|
 fn type_key(ty : RType) -> String {
   match ty {
     RType::Bool => "bool"
@@ -333,6 +14,7 @@ fn type_key(ty : RType) -> String {
     RType::F64 => "f64"
     RType::Char => "char"
     RType::String_ => "string"
+    RType::ErrorContext => "error-context"
     RType::Id(id) => "id:" + id.to_string()
   }
 }
@@ -354,6 +36,12 @@ fn type_kind_key(kind : RTypeKind) -> String {
       buf.write_string(type_key(inner))
       buf.write_char(')')
     }
+    RTypeKind::FixedLengthList(inner, size) =>
+      buf.write_string(
+        "fixed-list(" + type_key(inner) + "," + size.to_string() + ")",
+      )
+    RTypeKind::Map(key, value) =>
+      buf.write_string("map(" + type_key(key) + "," + type_key(value) + ")")
     RTypeKind::Option(inner) => {
       buf.write_string("option(")
       buf.write_string(type_key(inner))
@@ -361,12 +49,12 @@ fn type_kind_key(kind : RTypeKind) -> String {
     }
     RTypeKind::Future(inner) => {
       buf.write_string("future(")
-      buf.write_string(type_key(inner))
+      buf.write_string(type_key_option(inner))
       buf.write_char(')')
     }
     RTypeKind::Stream(inner) => {
       buf.write_string("stream(")
-      buf.write_string(type_key(inner))
+      buf.write_string(type_key_option(inner))
       buf.write_char(')')
     }
     RTypeKind::Result(ok~, err~) => {
@@ -405,253 +93,11 @@ fn type_kind_key(kind : RTypeKind) -> String {
 }
 
 ///|
-pub impl ToJson for RType with fn to_json(self) {
-  match self {
-    RType::Bool => json_string("bool")
-    RType::U8 => json_string("u8")
-    RType::U16 => json_string("u16")
-    RType::U32 => json_string("u32")
-    RType::U64 => json_string("u64")
-    RType::S8 => json_string("s8")
-    RType::S16 => json_string("s16")
-    RType::S32 => json_string("s32")
-    RType::S64 => json_string("s64")
-    RType::F32 => json_string("f32")
-    RType::F64 => json_string("f64")
-    RType::Char => json_string("char")
-    RType::String_ => json_string("string")
-    RType::Id(id) => json_number(id)
-  }
-}
-
-///|
-pub impl ToJson for RFunctionKind with fn to_json(self) {
-  match self {
-    RFunctionKind::Freestanding => json_string("freestanding")
-    RFunctionKind::Constructor(id) =>
-      Json::object({ "constructor": json_number(id) })
-    RFunctionKind::Method(id) => Json::object({ "method": json_number(id) })
-    RFunctionKind::Static(id) => Json::object({ "static": json_number(id) })
-  }
-}
-
-///|
-pub impl ToJson for RFunction with fn to_json(self) {
-  let params_json : Array[Json] = []
-  for item in self.params {
-    let (name, ty) = item
-    params_json.push(
-      Json::object({ "name": json_string(name), "type": ty.to_json() }),
-    )
-  }
-  let obj : Map[String, Json] = Map([])
-  match self.docs {
-    Some(text) => obj.set("docs", json_docs(text))
-    None => ()
-  }
-  obj.set("kind", self.kind.to_json())
-  obj.set("name", json_string(self.name))
-  obj.set("params", Json::array(params_json))
-  match self.result {
-    Some(result) => obj.set("result", result.to_json())
-    None => ()
-  }
-  Json::object(obj)
-}
-
-///|
-fn world_items_to_json(items : Map[String, RWorldItem]) -> Json {
-  let result : Map[String, Json] = Map([])
-  for name, item in items {
-    match item {
-      RWorldItem::Interface(iface_ref) =>
-        result.set(name, Json::object({ "interface": iface_ref.to_json() }))
-      RWorldItem::Function(func) =>
-        result.set(name, Json::object({ "function": func.to_json() }))
-      RWorldItem::Type(id) =>
-        result.set(name, Json::object({ "type": json_number(id) }))
-    }
-  }
-  map_sorted_to_json(result)
-}
-
-///|
-pub impl ToJson for RWorldItem with fn to_json(self) {
-  match self {
-    RWorldItem::Interface(iface_ref) =>
-      Json::object({ "interface": iface_ref.to_json() })
-    RWorldItem::Function(func) => Json::object({ "function": func.to_json() })
-    RWorldItem::Type(id) => Json::object({ "type": json_number(id) })
-  }
-}
-
-///|
-pub impl ToJson for RInterfaceRef with fn to_json(self) {
-  Json::object({ "id": json_number(self.id) })
-}
-
-///|
-pub impl ToJson for RInterface with fn to_json(self) {
-  let obj : Map[String, Json] = Map([])
-  match self.docs {
-    Some(text) => obj.set("docs", json_docs(text))
-    None => ()
-  }
-  obj.set("functions", map_sorted_to_json(self.functions))
-  obj.set("name", json_option(self.name))
-  obj.set("package", json_option(self.pkg))
-  obj.set("types", map_sorted_to_json(self.types))
-  Json::object(obj)
-}
-
-///|
-pub impl ToJson for RWorld with fn to_json(self) {
-  let obj : Map[String, Json] = Map([])
-  match self.docs {
-    Some(text) => obj.set("docs", json_docs(text))
-    None => ()
-  }
-  obj.set("exports", world_items_to_json(self.exports))
-  obj.set("imports", world_items_to_json(self.imports))
-  obj.set("name", json_string(self.name))
-  obj.set("package", json_option(self.pkg))
-  Json::object(obj)
-}
-
-///|
-pub impl ToJson for RPackageName with fn to_json(self) {
-  json_string(package_name_string(self))
-}
-
-///|
-pub impl ToJson for RPackage with fn to_json(self) {
-  Json::object({
-    "interfaces": map_sorted_to_json(self.interfaces),
-    "name": self.name.to_json(),
-    "worlds": map_sorted_to_json(self.worlds),
-  })
-}
-
-///|
-pub impl ToJson for RTypeOwner with fn to_json(self) {
-  match self {
-    RTypeOwner::Interface(id) => Json::object({ "interface": json_number(id) })
-    RTypeOwner::World(id) => Json::object({ "world": json_number(id) })
-    RTypeOwner::None => Json::null()
-  }
-}
-
-///|
-pub impl ToJson for RRecordField with fn to_json(self) {
-  Json::object({
-    "name": json_string(self.name),
-    "type": self.field_type.to_json(),
-  })
-}
-
-///|
-pub impl ToJson for RVariantCase with fn to_json(self) {
-  Json::object({
-    "name": json_string(self.name),
-    "type": json_option(self.case_type),
-  })
-}
-
-///|
-pub impl ToJson for RHandleKind with fn to_json(self) {
-  match self {
-    RHandleKind::Own(id) => Json::object({ "own": json_number(id) })
-    RHandleKind::Borrow(id) => Json::object({ "borrow": json_number(id) })
-  }
-}
-
-///|
-/// An array as JSON, element by element
-fn[T : ToJson] json_array(items : Array[T]) -> Json {
-  Json::array(items.map(fn(item) { item.to_json() }))
-}
-
-///|
-pub impl ToJson for RTypeKind with fn to_json(self) {
-  match self {
-    RTypeKind::Record(fields) =>
-      Json::object({ "record": Json::object({ "fields": json_array(fields) }) })
-    RTypeKind::Variant(cases) =>
-      Json::object({ "variant": Json::object({ "cases": json_array(cases) }) })
-    RTypeKind::List(inner) => Json::object({ "list": inner.to_json() })
-    RTypeKind::Option(inner) => Json::object({ "option": inner.to_json() })
-    RTypeKind::Future(inner) => Json::object({ "future": inner.to_json() })
-    RTypeKind::Stream(inner) => Json::object({ "stream": inner.to_json() })
-    RTypeKind::Result(ok~, err~) =>
-      Json::object({
-        "result": Json::object({
-          "err": json_option(err),
-          "ok": json_option(ok),
-        }),
-      })
-    RTypeKind::Tuple(types) =>
-      Json::object({ "tuple": Json::object({ "types": json_array(types) }) })
-    RTypeKind::Flags(names) => {
-      let flags_json : Array[Json] = []
-      for name in names {
-        flags_json.push(Json::object({ "name": json_string(name) }))
-      }
-      Json::object({
-        "flags": Json::object({ "flags": Json::array(flags_json) }),
-      })
-    }
-    RTypeKind::Enum(names) => {
-      let cases_json : Array[Json] = []
-      for name in names {
-        cases_json.push(Json::object({ "name": json_string(name) }))
-      }
-      Json::object({
-        "enum": Json::object({ "cases": Json::array(cases_json) }),
-      })
-    }
-    RTypeKind::Alias(ty) => Json::object({ "type": ty.to_json() })
-    RTypeKind::Resource => json_string("resource")
-    RTypeKind::Handle(handle) => Json::object({ "handle": handle.to_json() })
-  }
-}
-
-///|
-pub impl ToJson for RTypeDef with fn to_json(self) {
-  let obj : Map[String, Json] = Map([])
-  match self.docs {
-    Some(text) => obj.set("docs", json_docs(text))
-    None => ()
-  }
-  obj.set("kind", self.kind.to_json())
-  obj.set("name", json_option(self.name))
-  obj.set("owner", self.owner.to_json())
-  Json::object(obj)
-}
-
-///|
-pub impl ToJson for Resolve with fn to_json(self) {
-  Json::object({
-    "interfaces": json_array(self.interfaces),
-    "packages": json_array(self.packages),
-    "types": json_array(self.types),
-    "worlds": json_array(self.worlds),
-  })
-}
-
-///|
-pub impl ToJson for ResolveInput with fn to_json(self) {
-  Json::object({
-    "resolve": self.resolve.to_json(),
-    "world_id": json_number(self.world_id),
-  })
-}
-
-///|
 priv struct InterfaceBuilder {
   name : String?
   docs : String?
-  pkg : Int?
-  types : Map[String, Int]
+  pkg : Int32?
+  types : Map[String, Int32]
   functions : Map[String, RFunction]
 }
 
@@ -661,14 +107,15 @@ priv struct Resolver {
   iface_builders : Array[InterfaceBuilder]
   worlds : Array[RWorld]
   packages : Array[RPackage]
-  package_ids : Map[String, Int]
-  iface_ids : Map[String, Int]
-  anon_type_ids : Map[String, Int]
+  package_ids : Map[String, Int32]
+  iface_ids : Map[String, Int32]
+  anon_type_ids : Map[String, Int32]
+  constructor_results : Array[(Int32, RType)]
 }
 
 ///|
 priv struct WorldTypeScope {
-  types : Map[String, Int]
+  types : Map[String, Int32]
   ambiguous : Map[String, Bool]
 }
 
@@ -681,7 +128,7 @@ fn pkg_key(pkg : RPackageName) -> String {
 }
 
 ///|
-fn iface_key(pkg_id : Int?, name : String) -> String {
+fn iface_key(pkg_id : Int32?, name : String) -> String {
   match pkg_id {
     Some(id) => id.to_string() + ":" + name
     None => "_" + ":" + name
@@ -691,6 +138,7 @@ fn iface_key(pkg_id : Int?, name : String) -> String {
 ///|
 fn Resolver::new() -> Resolver {
   {
+    constructor_results: [],
     types: [],
     iface_builders: [],
     worlds: [],
@@ -702,7 +150,7 @@ fn Resolver::new() -> Resolver {
 }
 
 ///|
-fn Resolver::ensure_package(self : Resolver, pkg : RPackageName) -> Int {
+fn Resolver::ensure_package(self : Resolver, pkg : RPackageName) -> Int32 {
   let key = pkg_key(pkg)
   match self.package_ids.get(key) {
     Some(id) => id
@@ -719,9 +167,9 @@ fn Resolver::ensure_package(self : Resolver, pkg : RPackageName) -> Int {
 ///|
 fn Resolver::ensure_interface(
   self : Resolver,
-  pkg_id : Int?,
+  pkg_id : Int32?,
   name : String,
-) -> Int {
+) -> Int32 {
   let key = iface_key(pkg_id, name)
   match self.iface_ids.get(key) {
     Some(id) => id
@@ -751,9 +199,9 @@ fn Resolver::ensure_interface(
 ///|
 fn Resolver::new_inline_interface(
   self : Resolver,
-  pkg_id : Int?,
+  pkg_id : Int32?,
   docs : String?,
-) -> Int {
+) -> Int32 {
   let id = self.iface_builders.length()
   let builder : InterfaceBuilder = {
     name: None,
@@ -772,14 +220,14 @@ fn to_rpkg(pkg : PackageName) -> RPackageName {
 }
 
 ///|
-fn Resolver::push_type(self : Resolver, type_def : RTypeDef) -> Int {
+fn Resolver::push_type(self : Resolver, type_def : RTypeDef) -> Int32 {
   let id = self.types.length()
   self.types.push(type_def)
   id
 }
 
 ///|
-fn Resolver::intern_type(self : Resolver, kind : RTypeKind) -> Int {
+fn Resolver::intern_type(self : Resolver, kind : RTypeKind) -> Int32 {
   let key = type_kind_key(kind)
   match self.anon_type_ids.get(key) {
     Some(id) => id
@@ -789,6 +237,7 @@ fn Resolver::intern_type(self : Resolver, kind : RTypeKind) -> Int {
         kind,
         owner: RTypeOwner::None,
         docs: None,
+        external_id: None,
       })
       self.anon_type_ids.set(key, id)
       id
@@ -797,13 +246,13 @@ fn Resolver::intern_type(self : Resolver, kind : RTypeKind) -> Int {
 }
 
 ///|
-fn Resolver::ensure_borrow_handle(self : Resolver, res_id : Int) -> RType {
+fn Resolver::ensure_borrow_handle(self : Resolver, res_id : Int32) -> RType {
   let id = self.intern_type(RTypeKind::Handle(RHandleKind::Borrow(res_id)))
   RType::Id(id)
 }
 
 ///|
-fn Resolver::ensure_own_handle(self : Resolver, res_id : Int) -> RType {
+fn Resolver::ensure_own_handle(self : Resolver, res_id : Int32) -> RType {
   let id = self.intern_type(RTypeKind::Handle(RHandleKind::Own(res_id)))
   RType::Id(id)
 }
@@ -811,7 +260,7 @@ fn Resolver::ensure_own_handle(self : Resolver, res_id : Int) -> RType {
 ///|
 fn Resolver::set_type_kind(
   self : Resolver,
-  type_id : Int,
+  type_id : Int32,
   kind : RTypeKind,
 ) -> Unit {
   let current = self.types[type_id]
@@ -820,13 +269,14 @@ fn Resolver::set_type_kind(
     kind,
     owner: current.owner,
     docs: current.docs,
+    external_id: current.external_id,
   }
 }
 
 ///|
 fn Resolver::resolve_type_expr(
   self : Resolver,
-  iface_id : Int,
+  iface_id : Int32,
   expr : TypeExpr,
 ) -> RType raise ParseError {
   match expr {
@@ -843,10 +293,16 @@ fn Resolver::resolve_type_expr(
     F64 => RType::F64
     Char => RType::Char
     String_ => RType::String_
+    ErrorContext => RType::ErrorContext
     Id(name) => {
       let iface = self.iface_builders[iface_id]
       match iface.types.get(name) {
-        Some(id) => RType::Id(id)
+        Some(id) =>
+          if self.types[id].kind == RTypeKind::Resource {
+            self.ensure_own_handle(id)
+          } else {
+            RType::Id(id)
+          }
         None => raise ParseError::Message("unknown type: " + name, 0)
       }
     }
@@ -855,24 +311,41 @@ fn Resolver::resolve_type_expr(
       let id = self.intern_type(List(inner_ty))
       RType::Id(id)
     }
+    FixedLengthList(inner, size) => {
+      let inner_ty = self.resolve_type_expr(iface_id, inner)
+      RType::Id(self.intern_type(FixedLengthList(inner_ty, size)))
+    }
+    Map(key, value) => {
+      let key_ty = self.resolve_type_expr(iface_id, key)
+      let value_ty = self.resolve_type_expr(iface_id, value)
+      RType::Id(self.intern_type(Map(key_ty, value_ty)))
+    }
     Option(inner) => {
       let inner_ty = self.resolve_type_expr(iface_id, inner)
       let id = self.intern_type(Option(inner_ty))
       RType::Id(id)
     }
     Future(inner) => {
-      let inner_ty = self.resolve_type_expr(iface_id, inner)
+      let inner_ty = match inner {
+        Some(inner) => Some(self.resolve_type_expr(iface_id, inner))
+        None => None
+      }
       let id = self.intern_type(Future(inner_ty))
       RType::Id(id)
     }
     Stream(inner) => {
-      let inner_ty = self.resolve_type_expr(iface_id, inner)
+      let inner_ty = match inner {
+        Some(inner) => Some(self.resolve_type_expr(iface_id, inner))
+        None => None
+      }
       let id = self.intern_type(Stream(inner_ty))
       RType::Id(id)
     }
     Result(ok_ty, err_ty) => {
-      let ok_value = self.resolve_type_expr(iface_id, ok_ty)
-      let ok : RType? = Some(ok_value)
+      let ok : RType? = match ok_ty {
+        Some(t) => Some(self.resolve_type_expr(iface_id, t))
+        None => None
+      }
       let err : RType? = match err_ty {
         Some(e) => Some(self.resolve_type_expr(iface_id, e))
         None => None
@@ -910,9 +383,9 @@ fn Resolver::resolve_type_expr(
 ///|
 fn Resolver::resolve_function(
   self : Resolver,
-  iface_id : Int,
+  iface_id : Int32,
   func : Function,
-  kind : RFunctionKind,
+  _kind : RFunctionKind,
 ) -> RFunction raise ParseError {
   let params : Array[(String, RType)] = []
   for param in func.params {
@@ -923,11 +396,18 @@ fn Resolver::resolve_function(
     Some(r) => Some(self.resolve_type_expr(iface_id, r))
     None => None
   }
-  { name: func.name, kind, params, result, docs: func.docs, }
+  {
+    name: accessor_prefix(func.kind) + func.name,
+    kind: resolved_function_kind(func.kind, 0),
+    params,
+    result,
+    docs: func.docs,
+    external_id: func.external_id,
+  }
 }
 
 ///|
-fn build_world_type_scope(world_types : Map[String, Int]) -> WorldTypeScope {
+fn build_world_type_scope(world_types : Map[String, Int32]) -> WorldTypeScope {
   let scope : WorldTypeScope = { types: {}, ambiguous: {}, }
   for name, type_id in world_types {
     scope.types.set(name, type_id)
@@ -939,7 +419,7 @@ fn build_world_type_scope(world_types : Map[String, Int]) -> WorldTypeScope {
 fn resolve_world_type(
   scope : WorldTypeScope,
   name : String,
-) -> Int raise ParseError {
+) -> Int32 raise ParseError {
   if scope.ambiguous.contains(name) {
     raise ParseError::Message("ambiguous type: " + name, 0)
   }
@@ -971,6 +451,12 @@ fn merge_included_world_items(
   for name, item in source {
     let merged_name = renamed_world_item_name(name, renames)
     if target.contains(merged_name) {
+      // Interface-id keys denote the same interface and are deduplicated by include.
+      if name.has_prefix("interface-") &&
+        merged_name == name &&
+        target.get(merged_name) == Some(item) {
+        continue
+      }
       raise ParseError::Message("duplicate world item: " + merged_name, 0)
     }
     target.set(merged_name, item)
@@ -980,9 +466,9 @@ fn merge_included_world_items(
 ///|
 fn Resolver::find_world_id_in_scope(
   self : Resolver,
-  pkg_id : Int?,
+  pkg_id : Int32?,
   name : String,
-) -> Int? {
+) -> Int32? {
   match pkg_id {
     Some(pid) => self.packages[pid].worlds.get(name)
     None => {
@@ -999,9 +485,9 @@ fn Resolver::find_world_id_in_scope(
 ///|
 fn Resolver::resolve_include_world_id(
   self : Resolver,
-  current_pkg_id : Int?,
+  current_pkg_id : Int32?,
   include_decl : IncludeDecl,
-) -> Int raise ParseError {
+) -> Int32 raise ParseError {
   match include_decl.path.pkg {
     Some(pkg) => {
       let pid = self.ensure_package(to_rpkg(pkg))
@@ -1032,7 +518,7 @@ fn Resolver::resolve_world_resource(
   self : Resolver,
   scope : WorldTypeScope,
   name : String,
-) -> Int raise ParseError {
+) -> Int32 raise ParseError {
   let type_id = resolve_world_type(scope, name)
   let type_def = self.types[type_id]
   match type_def.kind {
@@ -1061,10 +547,20 @@ fn Resolver::resolve_type_expr_world(
     F64 => RType::F64
     Char => RType::Char
     String_ => RType::String_
+    ErrorContext => RType::ErrorContext
     List(inner) => {
       let inner_ty = self.resolve_type_expr_world(scope, inner)
       let id = self.intern_type(List(inner_ty))
       RType::Id(id)
+    }
+    FixedLengthList(inner, size) => {
+      let inner_ty = self.resolve_type_expr_world(scope, inner)
+      RType::Id(self.intern_type(FixedLengthList(inner_ty, size)))
+    }
+    Map(key, value) => {
+      let key_ty = self.resolve_type_expr_world(scope, key)
+      let value_ty = self.resolve_type_expr_world(scope, value)
+      RType::Id(self.intern_type(Map(key_ty, value_ty)))
     }
     Option(inner) => {
       let inner_ty = self.resolve_type_expr_world(scope, inner)
@@ -1072,18 +568,26 @@ fn Resolver::resolve_type_expr_world(
       RType::Id(id)
     }
     Future(inner) => {
-      let inner_ty = self.resolve_type_expr_world(scope, inner)
+      let inner_ty = match inner {
+        Some(inner) => Some(self.resolve_type_expr_world(scope, inner))
+        None => None
+      }
       let id = self.intern_type(Future(inner_ty))
       RType::Id(id)
     }
     Stream(inner) => {
-      let inner_ty = self.resolve_type_expr_world(scope, inner)
+      let inner_ty = match inner {
+        Some(inner) => Some(self.resolve_type_expr_world(scope, inner))
+        None => None
+      }
       let id = self.intern_type(Stream(inner_ty))
       RType::Id(id)
     }
     Result(ok_ty, err_ty) => {
-      let ok_value = self.resolve_type_expr_world(scope, ok_ty)
-      let ok : RType? = Some(ok_value)
+      let ok : RType? = match ok_ty {
+        Some(t) => Some(self.resolve_type_expr_world(scope, t))
+        None => None
+      }
       let err : RType? = match err_ty {
         Some(e) => Some(self.resolve_type_expr_world(scope, e))
         None => None
@@ -1101,7 +605,11 @@ fn Resolver::resolve_type_expr_world(
     }
     Id(name) => {
       let type_id = resolve_world_type(scope, name)
-      RType::Id(type_id)
+      if self.types[type_id].kind == RTypeKind::Resource {
+        self.ensure_own_handle(type_id)
+      } else {
+        RType::Id(type_id)
+      }
     }
     Own(name) => {
       let res_id = self.resolve_world_resource(scope, name)
@@ -1130,18 +638,19 @@ fn Resolver::resolve_world_function(
     None => None
   }
   {
-    name: func.name,
-    kind: RFunctionKind::Freestanding,
+    name: accessor_prefix(func.kind) + func.name,
+    kind: resolved_function_kind(func.kind, 0),
     params,
     result,
     docs: func.docs,
+    external_id: func.external_id,
   }
 }
 
 ///|
 fn Resolver::register_interfaces(
   self : Resolver,
-  pkg_id : Int?,
+  pkg_id : Int32?,
   ifaces : Array[Interface],
 ) -> Unit {
   for iface in ifaces {
@@ -1153,7 +662,7 @@ fn Resolver::register_interfaces(
 ///|
 fn Resolver::register_interface_items(
   self : Resolver,
-  iface_id : Int,
+  iface_id : Int32,
   docs : String?,
   items : Array[InterfaceItem],
 ) -> Unit {
@@ -1175,9 +684,14 @@ fn Resolver::register_interface_items(
       TypeDef(def) => {
         let placeholder : RTypeDef = {
           name: Some(def.name),
-          kind: Alias(RType::Bool),
+          kind: if def.kind is Resource(_) {
+            Resource
+          } else {
+            Alias(RType::Bool)
+          },
           owner: RTypeOwner::Interface(iface_id),
           docs: def.docs,
+          external_id: def.external_id,
         }
         let type_id = self.push_type(placeholder)
         builder.types.set(def.name, type_id)
@@ -1198,9 +712,9 @@ fn use_path_string(path : UsePath) -> String {
 ///|
 fn Resolver::resolve_use_decl_target_iface_id(
   self : Resolver,
-  current_pkg : Int?,
+  current_pkg : Int32?,
   from : UsePath,
-) -> Int raise ParseError {
+) -> Int32 raise ParseError {
   let target_pkg = match from.pkg {
     Some(pkg) =>
       match self.package_ids.get(pkg_key(to_rpkg(pkg))) {
@@ -1226,7 +740,7 @@ fn Resolver::resolve_use_decl_target_iface_id(
 ///|
 fn Resolver::apply_use_decls_items(
   self : Resolver,
-  iface_id : Int,
+  iface_id : Int32,
   items : Array[InterfaceItem],
 ) -> Unit raise ParseError {
   let builder = self.iface_builders[iface_id]
@@ -1240,7 +754,11 @@ fn Resolver::apply_use_decls_items(
         let target = self.iface_builders[target_id]
         for name in decl.names {
           match target.types.get(name) {
-            Some(tid) => builder.types.set(name, tid)
+            Some(tid) =>
+              builder.types.set(
+                renamed_world_item_name(name, decl.renames),
+                tid,
+              )
             None => raise ParseError::Message("unknown type: " + name, 0)
           }
         }
@@ -1253,10 +771,10 @@ fn Resolver::apply_use_decls_items(
 ///|
 fn Resolver::apply_use_decls(
   self : Resolver,
-  pkg_id : Int?,
+  pkg_id : Int32?,
   ifaces : Array[Interface],
-  strict? : Bool = true,
-) -> Int raise ParseError {
+  strict~ : Bool = true,
+) -> Int32 raise ParseError {
   let mut unresolved = 0
   for iface in ifaces {
     let iface_id = match self.iface_ids.get(iface_key(pkg_id, iface.name)) {
@@ -1274,7 +792,11 @@ fn Resolver::apply_use_decls(
           let target = self.iface_builders[target_id]
           for name in decl.names {
             match target.types.get(name) {
-              Some(tid) => builder.types.set(name, tid)
+              Some(tid) =>
+                builder.types.set(
+                  renamed_world_item_name(name, decl.renames),
+                  tid,
+                )
               None =>
                 if strict {
                   raise ParseError::Message("unknown type: " + name, 0)
@@ -1294,7 +816,7 @@ fn Resolver::apply_use_decls(
 ///|
 fn Resolver::fill_interface(
   self : Resolver,
-  iface_id : Int,
+  iface_id : Int32,
   iface : Interface,
 ) -> Unit raise ParseError {
   let builder = self.iface_builders[iface_id]
@@ -1335,7 +857,10 @@ fn Resolver::fill_interface(
             let mut has_method = false
             for func in res.funcs {
               match func.kind {
-                Method(_) => {
+                Method(_)
+                | AsyncMethod(_)
+                | MethodGetter(_)
+                | MethodSetter(_) => {
                   has_method = true
                   break
                 }
@@ -1353,7 +878,14 @@ fn Resolver::fill_interface(
                   if has_method {
                     ignore(self.ensure_borrow_handle(type_id))
                   }
-                  let result = Some(self.ensure_own_handle(type_id))
+                  let result = match func.result {
+                    Some(expr) => {
+                      let ty = self.resolve_type_expr(iface_id, expr)
+                      self.constructor_results.push((type_id, ty))
+                      Some(ty)
+                    }
+                    None => Some(self.ensure_own_handle(type_id))
+                  }
                   let name = "[constructor]" + def.name
                   let resolved : RFunction = {
                     name,
@@ -1361,10 +893,14 @@ fn Resolver::fill_interface(
                     params,
                     result,
                     docs: func.docs,
+                    external_id: func.external_id,
                   }
                   builder.functions.set(resolved.name, resolved)
                 }
-                Method(_) => {
+                Method(_)
+                | AsyncMethod(_)
+                | MethodGetter(_)
+                | MethodSetter(_) => {
                   let params : Array[(String, RType)] = []
                   let self_ty = self.ensure_borrow_handle(type_id)
                   params.push(("self", self_ty))
@@ -1376,17 +912,25 @@ fn Resolver::fill_interface(
                     Some(r) => Some(self.resolve_type_expr(iface_id, r))
                     None => None
                   }
-                  let name = "[method]" + def.name + "." + func.name
+                  let name = "[method]" +
+                    accessor_prefix(func.kind) +
+                    def.name +
+                    "." +
+                    func.name
                   let resolved : RFunction = {
                     name,
-                    kind: RFunctionKind::Method(type_id),
+                    kind: resolved_function_kind(func.kind, type_id),
                     params,
                     result,
                     docs: func.docs,
+                    external_id: func.external_id,
                   }
                   builder.functions.set(resolved.name, resolved)
                 }
-                Static(_) => {
+                Static(_)
+                | AsyncStatic(_)
+                | StaticGetter(_)
+                | StaticSetter(_) => {
                   let params : Array[(String, RType)] = []
                   for param in func.params {
                     let ty = self.resolve_type_expr(iface_id, param.ty)
@@ -1396,17 +940,22 @@ fn Resolver::fill_interface(
                     Some(r) => Some(self.resolve_type_expr(iface_id, r))
                     None => None
                   }
-                  let name = "[static]" + def.name + "." + func.name
+                  let name = "[static]" +
+                    accessor_prefix(func.kind) +
+                    def.name +
+                    "." +
+                    func.name
                   let resolved : RFunction = {
                     name,
-                    kind: RFunctionKind::Static(type_id),
+                    kind: resolved_function_kind(func.kind, type_id),
                     params,
                     result,
                     docs: func.docs,
+                    external_id: func.external_id,
                   }
                   builder.functions.set(resolved.name, resolved)
                 }
-                Freestanding => {
+                Freestanding | AsyncFreestanding | Getter | Setter => {
                   let resolved = self.resolve_function(
                     iface_id,
                     func,
@@ -1437,7 +986,7 @@ fn Resolver::fill_interface(
 ///|
 fn Resolver::fill_interfaces(
   self : Resolver,
-  pkg_id : Int?,
+  pkg_id : Int32?,
   ifaces : Array[Interface],
 ) -> Unit raise ParseError {
   for iface in ifaces {
@@ -1452,23 +1001,46 @@ fn Resolver::fill_interfaces(
 ///|
 fn Resolver::fill_worlds(
   self : Resolver,
-  pkg_id : Int?,
+  pkg_id : Int32?,
   worlds : Array[World],
 ) -> Unit raise ParseError {
   for world in worlds {
     let imports : Map[String, RWorldItem] = Map([])
     let exports : Map[String, RWorldItem] = Map([])
     let world_id = self.worlds.length()
-    let world_types : Map[String, Int] = Map([])
+    let world_types : Map[String, Int32] = Map([])
+    for item in world.imports {
+      if item is Use(decl) {
+        let target_id = self.resolve_use_decl_target_iface_id(pkg_id, decl.from)
+        let target = self.iface_builders[target_id]
+        for name in decl.names {
+          let local_name = renamed_world_item_name(name, decl.renames)
+          if world_types.contains(local_name) {
+            raise ParseError::Message("duplicate type: " + local_name, 0)
+          }
+          let tid = match target.types.get(name) {
+            Some(id) => id
+            None => raise ParseError::Message("unknown type: " + name, 0)
+          }
+          world_types.set(local_name, tid)
+          imports.set(local_name, Type(tid))
+        }
+      }
+    }
     for def in world.types {
       if world_types.contains(def.name) {
         raise ParseError::Message("duplicate type: " + def.name, 0)
       }
       let placeholder : RTypeDef = {
         name: Some(def.name),
-        kind: Alias(RType::Bool),
+        kind: if def.kind is Resource(_) {
+          Resource
+        } else {
+          Alias(RType::Bool)
+        },
         owner: RTypeOwner::World(world_id),
         docs: def.docs,
+        external_id: def.external_id,
       }
       let type_id = self.push_type(placeholder)
       world_types.set(def.name, type_id)
@@ -1510,7 +1082,7 @@ fn Resolver::fill_worlds(
           let mut has_method = false
           for func in res.funcs {
             match func.kind {
-              Method(_) => {
+              Method(_) | AsyncMethod(_) | MethodGetter(_) | MethodSetter(_) => {
                 has_method = true
                 break
               }
@@ -1528,7 +1100,14 @@ fn Resolver::fill_worlds(
                 if has_method {
                   ignore(self.ensure_borrow_handle(type_id))
                 }
-                let result = Some(self.ensure_own_handle(type_id))
+                let result = match func.result {
+                  Some(expr) => {
+                    let ty = self.resolve_type_expr_world(world_scope, expr)
+                    self.constructor_results.push((type_id, ty))
+                    Some(ty)
+                  }
+                  None => Some(self.ensure_own_handle(type_id))
+                }
                 let name = "[constructor]" + def.name
                 let resolved : RFunction = {
                   name,
@@ -1536,10 +1115,11 @@ fn Resolver::fill_worlds(
                   params,
                   result,
                   docs: func.docs,
+                  external_id: func.external_id,
                 }
                 imports.set(resolved.name, Function(resolved))
               }
-              Method(_) => {
+              Method(_) | AsyncMethod(_) | MethodGetter(_) | MethodSetter(_) => {
                 let params : Array[(String, RType)] = []
                 let self_ty = self.ensure_borrow_handle(type_id)
                 params.push(("self", self_ty))
@@ -1551,17 +1131,22 @@ fn Resolver::fill_worlds(
                   Some(r) => Some(self.resolve_type_expr_world(world_scope, r))
                   None => None
                 }
-                let name = "[method]" + def.name + "." + func.name
+                let name = "[method]" +
+                  accessor_prefix(func.kind) +
+                  def.name +
+                  "." +
+                  func.name
                 let resolved : RFunction = {
                   name,
-                  kind: RFunctionKind::Method(type_id),
+                  kind: resolved_function_kind(func.kind, type_id),
                   params,
                   result,
                   docs: func.docs,
+                  external_id: func.external_id,
                 }
                 imports.set(resolved.name, Function(resolved))
               }
-              Static(_) => {
+              Static(_) | AsyncStatic(_) | StaticGetter(_) | StaticSetter(_) => {
                 let params : Array[(String, RType)] = []
                 for param in func.params {
                   let ty = self.resolve_type_expr_world(world_scope, param.ty)
@@ -1571,17 +1156,22 @@ fn Resolver::fill_worlds(
                   Some(r) => Some(self.resolve_type_expr_world(world_scope, r))
                   None => None
                 }
-                let name = "[static]" + def.name + "." + func.name
+                let name = "[static]" +
+                  accessor_prefix(func.kind) +
+                  def.name +
+                  "." +
+                  func.name
                 let resolved : RFunction = {
                   name,
-                  kind: RFunctionKind::Static(type_id),
+                  kind: resolved_function_kind(func.kind, type_id),
                   params,
                   result,
                   docs: func.docs,
+                  external_id: func.external_id,
                 }
                 imports.set(resolved.name, Function(resolved))
               }
-              Freestanding => {
+              Freestanding | AsyncFreestanding | Getter | Setter => {
                 let resolved = self.resolve_world_function(func, world_scope)
                 imports.set(resolved.name, Function(resolved))
               }
@@ -1593,7 +1183,14 @@ fn Resolver::fill_worlds(
       self.set_type_kind(type_id, kind)
     }
     for item in world.imports {
+      let (item, external_id) = match item {
+        External(id, item) => (item, Some(id))
+        _ => (item, None)
+      }
       match item {
+        External(_, _) =>
+          raise ParseError::Message("nested external-id annotation", 0)
+        Use(_) => ()
         WorldItem::Include(include_decl) => {
           let include_world_id = self.resolve_include_world_id(
             pkg_id, include_decl,
@@ -1610,6 +1207,13 @@ fn Resolver::fill_worlds(
             include_decl.renames,
           )
         }
+        WorldItem::NamedInterface(name, path) => {
+          let iface_id = self.resolve_use_decl_target_iface_id(pkg_id, path)
+          if imports.contains(name) {
+            raise ParseError::Message("duplicate world item: " + name, 0)
+          }
+          imports.set(name, Interface({ id: iface_id, external_id, }))
+        }
         WorldItem::Interface(path) => {
           let iface_id = match path.pkg {
             Some(p) => {
@@ -1629,7 +1233,7 @@ fn Resolver::fill_worlds(
             }
           }
           let key = "interface-" + iface_id.to_string()
-          imports.set(key, Interface({ id: iface_id, }))
+          imports.set(key, Interface({ id: iface_id, external_id, }))
         }
         WorldItem::InlineInterface(inline) => {
           let iface_id = self.new_inline_interface(pkg_id, inline.docs)
@@ -1641,7 +1245,7 @@ fn Resolver::fill_worlds(
             items: inline.items,
           }
           self.fill_interface(iface_id, iface_ast)
-          imports.set(inline.name, Interface({ id: iface_id, }))
+          imports.set(inline.name, Interface({ id: iface_id, external_id, }))
         }
         WorldItem::Function(func) => {
           let resolved = self.resolve_world_function(func, world_scope)
@@ -1650,7 +1254,21 @@ fn Resolver::fill_worlds(
       }
     }
     for item in world.exports {
+      let (item, external_id) = match item {
+        External(id, item) => (item, Some(id))
+        _ => (item, None)
+      }
       match item {
+        External(_, _) =>
+          raise ParseError::Message("nested external-id annotation", 0)
+        Use(_) => ()
+        WorldItem::NamedInterface(name, path) => {
+          let iface_id = self.resolve_use_decl_target_iface_id(pkg_id, path)
+          if exports.contains(name) {
+            raise ParseError::Message("duplicate world item: " + name, 0)
+          }
+          exports.set(name, Interface({ id: iface_id, external_id, }))
+        }
         WorldItem::Interface(path) => {
           let iface_id = match path.pkg {
             Some(p) => {
@@ -1670,7 +1288,7 @@ fn Resolver::fill_worlds(
             }
           }
           let key = "interface-" + iface_id.to_string()
-          exports.set(key, Interface({ id: iface_id, }))
+          exports.set(key, Interface({ id: iface_id, external_id, }))
         }
         WorldItem::InlineInterface(inline) => {
           let iface_id = self.new_inline_interface(pkg_id, inline.docs)
@@ -1682,7 +1300,7 @@ fn Resolver::fill_worlds(
             items: inline.items,
           }
           self.fill_interface(iface_id, iface_ast)
-          exports.set(inline.name, Interface({ id: iface_id, }))
+          exports.set(inline.name, Interface({ id: iface_id, external_id, }))
         }
         WorldItem::Function(func) => {
           let resolved = self.resolve_world_function(func, world_scope)
@@ -1726,9 +1344,13 @@ fn build_interfaces(builders : Array[InterfaceBuilder]) -> Array[RInterface] {
 }
 
 ///|
-fn resolve_asts(asts : Array[WitFile]) -> Resolve raise ParseError {
+fn resolve_asts(input_asts : Array[WitFile]) -> Resolve raise ParseError {
+  let asts : Array[WitFile] = []
+  for ast in input_asts {
+    flatten_packages(ast, asts)
+  }
   let resolver = Resolver::new()
-  let pkg_ids : Array[Int?] = []
+  let pkg_ids : Array[Int32?] = []
   for ast in asts {
     let pkg_id = match ast.pkg {
       Some(p) => Some(resolver.ensure_package(to_rpkg(p)))
@@ -1758,8 +1380,33 @@ fn resolve_asts(asts : Array[WitFile]) -> Resolve raise ParseError {
   for i, ast in asts {
     resolver.fill_interfaces(pkg_ids[i], ast.interfaces)
   }
+  let pending : Array[(Int32?, World)] = []
   for i, ast in asts {
-    resolver.fill_worlds(pkg_ids[i], ast.worlds)
+    for world in ast.worlds {
+      pending.push((pkg_ids[i], world))
+    }
+  }
+  let states = Array::make(pending.length(), 0)
+  for i in 0..<pending.length() {
+    resolver.fill_world_in_order(pending, states, i)
+  }
+  validate_resolved_types(resolver.types)
+  for (resource, result) in resolver.constructor_results {
+    validate_constructor_result(resolver.types, resource, result)
+  }
+  for builder in resolver.iface_builders {
+    validate_accessor_pairs(builder.functions, resolver.types)
+  }
+  for world in resolver.worlds {
+    for items in [world.imports, world.exports] {
+      let functions : Map[String, RFunction] = Map([])
+      for name, item in items {
+        if item is Function(func) {
+          functions.set(name, func)
+        }
+      }
+      validate_accessor_pairs(functions, resolver.types)
+    }
   }
   let interfaces = build_interfaces(resolver.iface_builders)
   {
@@ -1779,4 +1426,76 @@ fn resolve_ast(ast : WitFile) -> Resolve raise ParseError {
 fn resolve_wit(source : String) -> Resolve raise ParseError {
   let ast = parse_wit(source)
   resolve_ast(ast)
+}
+
+///|
+fn flatten_packages(ast : WitFile, asts : Array[WitFile]) -> Unit {
+  asts.push(ast)
+  for pkg in ast.packages {
+    flatten_packages(pkg, asts)
+  }
+}
+
+///|
+fn Resolver::fill_world_in_order(
+  self : Resolver,
+  pending : Array[(Int32?, World)],
+  states : Array[Int32],
+  index : Int32,
+) -> Unit raise ParseError {
+  if states[index] == 2 {
+    return
+  }
+  if states[index] == 1 {
+    raise ParseError::Message("cyclic world include", 0)
+  }
+  states[index] = 1
+  let (pkg, world) = pending[index]
+  for item in world.imports {
+    if item is Include(decl) {
+      let target_pkg = match decl.path.pkg {
+        Some(p) => self.package_ids.get(pkg_key(to_rpkg(p)))
+        None => pkg
+      }
+      for i, (candidate_pkg, candidate) in pending {
+        if candidate_pkg == target_pkg && candidate.name == decl.path.interface {
+          self.fill_world_in_order(pending, states, i)
+          break
+        }
+      }
+    }
+  }
+  self.fill_worlds(pkg, [world])
+  states[index] = 2
+}
+
+///|
+fn accessor_prefix(kind : FunctionKind) -> String {
+  match kind {
+    Getter | MethodGetter(_) | StaticGetter(_) => "[get]"
+    Setter | MethodSetter(_) | StaticSetter(_) => "[set]"
+    _ => ""
+  }
+}
+
+///|
+fn resolved_function_kind(
+  kind : FunctionKind,
+  resource : Int32,
+) -> RFunctionKind {
+  match kind {
+    Freestanding => RFunctionKind::Freestanding
+    AsyncFreestanding => RFunctionKind::AsyncFreestanding
+    Getter => RFunctionKind::Getter
+    Setter => RFunctionKind::Setter
+    Constructor(_) => RFunctionKind::Constructor(resource)
+    Method(_) => RFunctionKind::Method(resource)
+    AsyncMethod(_) => RFunctionKind::AsyncMethod(resource)
+    MethodGetter(_) => RFunctionKind::MethodGetter(resource)
+    MethodSetter(_) => RFunctionKind::MethodSetter(resource)
+    Static(_) => RFunctionKind::Static(resource)
+    AsyncStatic(_) => RFunctionKind::AsyncStatic(resource)
+    StaticGetter(_) => RFunctionKind::StaticGetter(resource)
+    StaticSetter(_) => RFunctionKind::StaticSetter(resource)
+  }
 }

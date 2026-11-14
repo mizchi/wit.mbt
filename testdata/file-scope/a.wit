@@ -1,0 +1,13 @@
+package test:file-scope;
+
+use numbers as shared;
+
+interface api-a {
+  use shared.{value as input};
+  run: func(value: input);
+}
+
+world app {
+  export api-a;
+  export api-b;
+}

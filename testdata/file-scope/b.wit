@@ -1,0 +1,6 @@
+use strings as shared;
+
+interface api-b {
+  use shared.{value as output};
+  run: func() -> output;
+}

@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 pub enum TokenType {
   Ident(String)
   Keyword(String)
@@ -7,7 +8,7 @@ pub enum TokenType {
   Number(String)
   Doc(String)
   Eof
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl Show for TokenType with fn to_string(self) {
@@ -15,10 +16,11 @@ pub impl Show for TokenType with fn to_string(self) {
 }
 
 ///|
+#derive(Eq, Debug)
 pub struct Token {
   token_type : TokenType
-  offset : Int
-} derive(Eq, Debug)
+  offset : Int32
+}
 
 ///|
 pub impl Show for Token with fn to_string(self) {
@@ -28,7 +30,7 @@ pub impl Show for Token with fn to_string(self) {
 ///|
 priv struct Lexer {
   input : Array[Char]
-  mut pos : Int
+  mut pos : Int32
 }
 
 ///|
@@ -103,6 +105,8 @@ fn is_keyword(name : String) -> Bool {
     | "tuple"
     | "future"
     | "stream"
+    | "map"
+    | "error-context"
     | "own"
     | "borrow"
     | "async"
@@ -257,12 +261,16 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
       Some('/') if lexer.peek_next() == Some('/') => {
         let _ = lexer.advance()
         let _ = lexer.advance()
-        if lexer.peek_char() == Some('/') {
-          let _ = lexer.advance()
+        let is_doc = lexer.peek_char() == Some('/')
+        if is_doc {
+          ignore(lexer.advance())
         }
         let text = lexer.read_line_comment().trim().to_owned()
-        tokens.push({ token_type: Doc(text), offset, })
+        if is_doc {
+          tokens.push({ token_type: Doc(text), offset, })
+        }
       }
+      Some('/') if lexer.peek_next() == Some('*') => lexer.skip_block_comment()
       Some('%') => {
         let _ = lexer.advance()
         match lexer.peek_char() {
@@ -332,8 +340,52 @@ fn tokenize_raise(source : String) -> Array[Token] raise ParseError {
 }
 
 ///|
+#warnings("-78")
 pub fn tokenize(source : String) -> Result[Array[Token], ParseError] {
   Ok(tokenize_raise(source)) catch {
     e => Err(e)
+  }
+}
+
+///|
+pub extend TokenType with Eq::{not_equal, equal}
+
+///|
+pub extend TokenType with Debug::{to_repr}
+
+///|
+pub extend TokenType with Show::{to_string, output}
+
+///|
+pub extend Token with Eq::{not_equal, equal}
+
+///|
+pub extend Token with Debug::{to_repr}
+
+///|
+pub extend Token with Show::{to_string, output}
+
+///|
+fn Lexer::skip_block_comment(self : Lexer) -> Unit raise ParseError {
+  let offset = self.pos
+  ignore(self.advance())
+  ignore(self.advance())
+  let mut depth = 1
+  while depth > 0 {
+    match (self.peek_char(), self.peek_next()) {
+      (None, _) =>
+        raise ParseError::Message("unterminated block comment", offset)
+      (Some('/'), Some('*')) => {
+        ignore(self.advance())
+        ignore(self.advance())
+        depth += 1
+      }
+      (Some('*'), Some('/')) => {
+        ignore(self.advance())
+        ignore(self.advance())
+        depth -= 1
+      }
+      _ => ignore(self.advance())
+    }
   }
 }
