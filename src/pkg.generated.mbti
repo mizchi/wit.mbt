@@ -3,6 +3,7 @@ package "mizchi/wit"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -25,146 +26,166 @@ pub fn resolve_path_interface_infos(String, world? : String) -> Result[Array[Res
 pub fn tokenize(String) -> Result[Array[Token], ParseError]
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub suberror ParseError {
-  Message(String, Int)
-} derive(Eq, @debug.Debug)
+  Message(String, Int32)
+}
 pub impl Show for ParseError
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct Field {
   name : String
   ty : TypeExpr
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for Field
 
+#derive(Eq, @debug.Debug)
 pub struct Function {
   name : String
   kind : FunctionKind
   params : Array[Param]
   result : TypeExpr?
   docs : String?
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for Function
 
+#derive(Eq, @debug.Debug)
 pub enum FunctionKind {
   Freestanding
   Constructor(String)
   Method(String)
   Static(String)
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for FunctionKind
 
+#derive(Eq, @debug.Debug)
 pub struct IncludeDecl {
   path : UsePath
   renames : Array[IncludeRename]
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for IncludeDecl
 
+#derive(Eq, @debug.Debug)
 pub struct IncludeRename {
   from : String
   to : String
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for IncludeRename
 
+#derive(Eq, @debug.Debug)
 pub struct InlineInterface {
   name : String
   docs : String?
   items : Array[InterfaceItem]
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for InlineInterface
 
+#derive(Eq, @debug.Debug)
 pub struct Interface {
   name : String
   docs : String?
   items : Array[InterfaceItem]
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for Interface
 
+#derive(Eq, @debug.Debug)
 pub enum InterfaceItem {
   Use(UseDecl)
   TypeDef(TypeDef)
   Function(Function)
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for InterfaceItem
 
+#derive(Eq, @debug.Debug)
 pub struct PackageName {
   ns : String
   name : String
   version : String?
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for PackageName
 
+#derive(Eq, @debug.Debug)
 pub struct Param {
   name : String
   ty : TypeExpr
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for Param
 
+#derive(Eq, @debug.Debug)
 pub struct RFunction {
   name : String
   kind : RFunctionKind
   params : Array[(String, RType)]
   result : RType?
   docs : String?
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for RFunction
-pub impl ToJson for RFunction
+pub impl @json.ToJson for RFunction
 
+#derive(Eq, @debug.Debug)
 pub enum RFunctionKind {
   Freestanding
-  Constructor(Int)
-  Method(Int)
-  Static(Int)
-} derive(Eq, @debug.Debug)
+  Constructor(Int32)
+  Method(Int32)
+  Static(Int32)
+}
 pub impl Show for RFunctionKind
-pub impl ToJson for RFunctionKind
+pub impl @json.ToJson for RFunctionKind
 
+#derive(Eq, @debug.Debug)
 pub enum RHandleKind {
-  Own(Int)
-  Borrow(Int)
-} derive(Eq, @debug.Debug)
+  Own(Int32)
+  Borrow(Int32)
+}
 pub impl Show for RHandleKind
-pub impl ToJson for RHandleKind
+pub impl @json.ToJson for RHandleKind
 
+#derive(Eq, @debug.Debug)
 pub struct RInterface {
   name : String?
   docs : String?
   functions : Map[String, RFunction]
-  types : Map[String, Int]
-  pkg : Int?
-} derive(Eq, @debug.Debug)
+  types : Map[String, Int32]
+  pkg : Int32?
+}
 pub impl Show for RInterface
-pub impl ToJson for RInterface
+pub impl @json.ToJson for RInterface
 
+#derive(Eq, @debug.Debug)
 pub struct RInterfaceRef {
-  id : Int
-} derive(Eq, @debug.Debug)
+  id : Int32
+}
 pub impl Show for RInterfaceRef
-pub impl ToJson for RInterfaceRef
+pub impl @json.ToJson for RInterfaceRef
 
+#derive(Eq, @debug.Debug)
 pub struct RPackage {
   name : RPackageName
-  interfaces : Map[String, Int]
-  worlds : Map[String, Int]
-} derive(Eq, @debug.Debug)
+  interfaces : Map[String, Int32]
+  worlds : Map[String, Int32]
+}
 pub impl Show for RPackage
-pub impl ToJson for RPackage
+pub impl @json.ToJson for RPackage
 
+#derive(Eq, @debug.Debug)
 pub struct RPackageName {
   ns : String
   name : String
   version : String?
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for RPackageName
-pub impl ToJson for RPackageName
+pub impl @json.ToJson for RPackageName
 
+#derive(Eq, @debug.Debug)
 pub struct RRecordField {
   name : String
   field_type : RType
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for RRecordField
-pub impl ToJson for RRecordField
+pub impl @json.ToJson for RRecordField
 
+#derive(Eq, @debug.Debug)
 pub enum RType {
   Bool
   U8
@@ -179,20 +200,22 @@ pub enum RType {
   F64
   Char
   String_
-  Id(Int)
-} derive(Eq, @debug.Debug)
+  Id(Int32)
+}
 pub impl Show for RType
-pub impl ToJson for RType
+pub impl @json.ToJson for RType
 
+#derive(Eq, @debug.Debug)
 pub struct RTypeDef {
   name : String?
   kind : RTypeKind
   owner : RTypeOwner
   docs : String?
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for RTypeDef
-pub impl ToJson for RTypeDef
+pub impl @json.ToJson for RTypeDef
 
+#derive(Eq, @debug.Debug)
 pub enum RTypeKind {
   Record(Array[RRecordField])
   Variant(Array[RVariantCase])
@@ -207,92 +230,103 @@ pub enum RTypeKind {
   Alias(RType)
   Resource
   Handle(RHandleKind)
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for RTypeKind
-pub impl ToJson for RTypeKind
+pub impl @json.ToJson for RTypeKind
 
+#derive(Eq, @debug.Debug)
 pub enum RTypeOwner {
-  Interface(Int)
-  World(Int)
+  Interface(Int32)
+  World(Int32)
   None
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for RTypeOwner
-pub impl ToJson for RTypeOwner
+pub impl @json.ToJson for RTypeOwner
 
+#derive(Eq, @debug.Debug)
 pub struct RVariantCase {
   name : String
   case_type : RType?
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for RVariantCase
-pub impl ToJson for RVariantCase
+pub impl @json.ToJson for RVariantCase
 
+#derive(Eq, @debug.Debug)
 pub struct RWorld {
   name : String
   docs : String?
   imports : Map[String, RWorldItem]
   exports : Map[String, RWorldItem]
-  pkg : Int?
-} derive(Eq, @debug.Debug)
+  pkg : Int32?
+}
 pub impl Show for RWorld
-pub impl ToJson for RWorld
+pub impl @json.ToJson for RWorld
 
+#derive(Eq, @debug.Debug)
 pub enum RWorldItem {
   Interface(RInterfaceRef)
   Function(RFunction)
-  Type(Int)
-} derive(Eq, @debug.Debug)
+  Type(Int32)
+}
 pub impl Show for RWorldItem
-pub impl ToJson for RWorldItem
+pub impl @json.ToJson for RWorldItem
 
+#derive(Eq, @debug.Debug)
 pub struct Resolve {
   worlds : Array[RWorld]
   interfaces : Array[RInterface]
   types : Array[RTypeDef]
   packages : Array[RPackage]
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for Resolve
-pub impl ToJson for Resolve
+pub impl @json.ToJson for Resolve
 
+#derive(Eq, @debug.Debug)
 pub struct ResolveInput {
   resolve : Resolve
-  world_id : Int
-} derive(Eq, @debug.Debug)
+  world_id : Int32
+}
 pub impl Show for ResolveInput
-pub impl ToJson for ResolveInput
+pub impl @json.ToJson for ResolveInput
 
+#derive(Eq, @debug.Debug)
 pub struct ResolvedInterfaceInfo {
-  interface_id : Int
+  interface_id : Int32
   name : String?
   docs : String?
   package_name : RPackageName?
   functions : Map[String, RFunction]
   types : Map[String, ResolvedTypeInfo]
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for ResolvedInterfaceInfo
 
+#derive(Eq, @debug.Debug)
 pub struct ResolvedTypeInfo {
   local_name : String
-  type_id : Int
+  type_id : Int32
   type_name : String?
   type_kind : RTypeKind
   owner : RTypeOwner
   owner_package : RPackageName?
   owner_interface : String?
   owner_world : String?
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for ResolvedTypeInfo
 
+#derive(Eq, @debug.Debug)
 pub struct Resource {
   funcs : Array[Function]
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for Resource
 
+#derive(Eq, @debug.Debug)
 pub struct Token {
   token_type : TokenType
-  offset : Int
-} derive(Eq, @debug.Debug)
+  offset : Int32
+}
 pub impl Show for Token
 
+#derive(Eq, @debug.Debug)
 pub enum TokenType {
   Ident(String)
   Keyword(String)
@@ -301,16 +335,18 @@ pub enum TokenType {
   Number(String)
   Doc(String)
   Eof
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for TokenType
 
+#derive(Eq, @debug.Debug)
 pub struct TypeDef {
   name : String
   kind : TypeDefKind
   docs : String?
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for TypeDef
 
+#derive(Eq, @debug.Debug)
 pub enum TypeDefKind {
   Record(Array[Field])
   Enum(Array[String])
@@ -318,9 +354,10 @@ pub enum TypeDefKind {
   Variant(Array[VariantCase])
   Alias(TypeExpr)
   Resource(Resource)
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for TypeDefKind
 
+#derive(Eq, @debug.Debug)
 pub enum TypeExpr {
   Bool
   U8
@@ -344,49 +381,55 @@ pub enum TypeExpr {
   Tuple(Array[TypeExpr])
   Own(String)
   Borrow(String)
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for TypeExpr
 
+#derive(Eq, @debug.Debug)
 pub struct UseDecl {
   from : UsePath
   names : Array[String]
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for UseDecl
 
+#derive(Eq, @debug.Debug)
 pub struct UsePath {
   pkg : PackageName?
   interface : String
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for UsePath
 
+#derive(Eq, @debug.Debug)
 pub struct VariantCase {
   name : String
   ty : TypeExpr?
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for VariantCase
 
+#derive(Eq, @debug.Debug)
 pub struct WitFile {
   pkg : PackageName?
   interfaces : Array[Interface]
   worlds : Array[World]
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for WitFile
 
+#derive(Eq, @debug.Debug)
 pub struct World {
   name : String
   docs : String?
   types : Array[TypeDef]
   imports : Array[WorldItem]
   exports : Array[WorldItem]
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for World
 
+#derive(Eq, @debug.Debug)
 pub enum WorldItem {
   Interface(UsePath)
   Function(Function)
   InlineInterface(InlineInterface)
   Include(IncludeDecl)
-} derive(Eq, @debug.Debug)
+}
 pub impl Show for WorldItem
 
 // Type aliases
