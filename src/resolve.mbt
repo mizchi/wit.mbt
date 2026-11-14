@@ -566,12 +566,18 @@ pub impl ToJson for RHandleKind with fn to_json(self) {
 }
 
 ///|
+/// An array as JSON, element by element
+fn[T : ToJson] json_array(items : Array[T]) -> Json {
+  Json::array(items.map(fn(item) { item.to_json() }))
+}
+
+///|
 pub impl ToJson for RTypeKind with fn to_json(self) {
   match self {
     RTypeKind::Record(fields) =>
-      Json::object({ "record": Json::object({ "fields": fields.to_json() }) })
+      Json::object({ "record": Json::object({ "fields": json_array(fields) }) })
     RTypeKind::Variant(cases) =>
-      Json::object({ "variant": Json::object({ "cases": cases.to_json() }) })
+      Json::object({ "variant": Json::object({ "cases": json_array(cases) }) })
     RTypeKind::List(inner) => Json::object({ "list": inner.to_json() })
     RTypeKind::Option(inner) => Json::object({ "option": inner.to_json() })
     RTypeKind::Future(inner) => Json::object({ "future": inner.to_json() })
@@ -584,7 +590,7 @@ pub impl ToJson for RTypeKind with fn to_json(self) {
         }),
       })
     RTypeKind::Tuple(types) =>
-      Json::object({ "tuple": Json::object({ "types": types.to_json() }) })
+      Json::object({ "tuple": Json::object({ "types": json_array(types) }) })
     RTypeKind::Flags(names) => {
       let flags_json : Array[Json] = []
       for name in names {
@@ -625,10 +631,10 @@ pub impl ToJson for RTypeDef with fn to_json(self) {
 ///|
 pub impl ToJson for Resolve with fn to_json(self) {
   Json::object({
-    "interfaces": self.interfaces.to_json(),
-    "packages": self.packages.to_json(),
-    "types": self.types.to_json(),
-    "worlds": self.worlds.to_json(),
+    "interfaces": json_array(self.interfaces),
+    "packages": json_array(self.packages),
+    "types": json_array(self.types),
+    "worlds": json_array(self.worlds),
   })
 }
 

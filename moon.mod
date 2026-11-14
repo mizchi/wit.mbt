@@ -1,6 +1,6 @@
 name = "mizchi/wit"
 
-version = "0.3.3"
+version = "0.3.4"
 
 import {
   "moonbitlang/x@0.5.4",
